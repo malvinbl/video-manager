@@ -3,8 +3,9 @@ package es.mblcu.videomanager.infrastructure.redis;
 import es.mblcu.videomanager.domain.frame.ExtractFrameCommand;
 import es.mblcu.videomanager.domain.frame.ExtractFrameResult;
 import es.mblcu.videomanager.domain.jobs.JobState;
-import es.mblcu.videomanager.domain.jobs.RedisOps;
 import es.mblcu.videomanager.domain.jobs.vo.JobStatus;
+import io.lettuce.core.RedisFuture;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,35 +33,39 @@ import static org.mockito.Mockito.when;
 class JobStateRepositoryRedisAdapterTest {
 
     @Mock
-    private RedisOps redisOps;
+    private RedisAsyncCommands<String, String> commands;
 
     private JobStateRepositoryRedisAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new JobStateRepositoryRedisAdapter("vm", redisOps);
+        adapter = new JobStateRepositoryRedisAdapter("vm", commands);
     }
 
     @Test
     void shouldReturnEmptyWhenJobDoesNotExist() {
-        when(redisOps.hgetall("vm:job:job-1")).thenReturn(CompletableFuture.completedFuture(Map.of()));
+        RedisFuture<Map<String, String>> future = redisFuture(Map.of());
+
+        when(commands.hgetall("vm:job:job-1")).thenReturn(future);
 
         Optional<JobState> state = adapter.findJob("job-1").join();
 
         assertTrue(state.isEmpty());
-        verify(redisOps).hgetall("vm:job:job-1");
+        verify(commands).hgetall("vm:job:job-1");
     }
 
     @Test
     void shouldMapJobStateFromRedisHash() {
-        when(redisOps.hgetall("vm:job:job-1")).thenReturn(CompletableFuture.completedFuture(Map.of(
+        RedisFuture<Map<String, String>> future = redisFuture(Map.of(
             "videoId", "101",
             "videoS3Path", "s3://bucket/videos/video.mp4",
             "frameS3Path", "s3://bucket/frames/frame.png",
             "status", "SUCCESS",
             "elapsedMillis", "12",
             "errorDescription", ""
-        )));
+        ));
+
+        when(commands.hgetall("vm:job:job-1")).thenReturn(future);
 
         Optional<JobState> state = adapter.findJob("job-1").join();
 
@@ -74,14 +80,15 @@ class JobStateRepositoryRedisAdapterTest {
     @Test
     void shouldStoreSuccessJobState() {
         final var result = new ExtractFrameResult(77L, "s3://bucket/frames/frame.png", Duration.ofMillis(30));
+        RedisFuture<Long> future = redisFuture(1L);
 
-        when(redisOps.hset(anyString(), anyMap())).thenReturn(CompletableFuture.completedFuture(1L));
+        when(commands.hset(anyString(), anyMap())).thenReturn(future);
 
         adapter.markSuccess("job-77", result).join();
 
         final var captor = ArgumentCaptor.forClass(Map.class);
 
-        verify(redisOps).hset(anyString(), captor.capture());
+        verify(commands).hset(anyString(), captor.capture());
 
         @SuppressWarnings("unchecked")
         Map<String, String> fields = (Map<String, String>) captor.getValue();
@@ -95,28 +102,31 @@ class JobStateRepositoryRedisAdapterTest {
     @Test
     void shouldDeleteVideoRefKeyWhenDecrementGoesToZero() {
         String key = "vm:video:ref:s3://bucket/videos/video.mp4";
+        RedisFuture<Long> decrFuture = redisFuture(0L);
+        RedisFuture<Long> delFuture = redisFuture(1L);
 
-        when(redisOps.decr(key)).thenReturn(CompletableFuture.completedFuture(0L));
-        when(redisOps.del(key)).thenReturn(CompletableFuture.completedFuture(1L));
+        when(commands.decr(key)).thenReturn(decrFuture);
+        when(commands.del(key)).thenReturn(delFuture);
 
         long value = adapter.decrementVideoRef("s3://bucket/videos/video.mp4").join();
 
         assertEquals(0L, value);
-        verify(redisOps).decr(key);
-        verify(redisOps).del(key);
+        verify(commands).decr(key);
+        verify(commands).del(key);
     }
 
     @Test
     void shouldKeepVideoRefKeyWhenStillPositive() {
         String key = "vm:video:ref:s3://bucket/videos/video.mp4";
+        RedisFuture<Long> future = redisFuture(2L);
 
-        when(redisOps.decr(key)).thenReturn(CompletableFuture.completedFuture(2L));
+        when(commands.decr(key)).thenReturn(future);
 
         long value = adapter.decrementVideoRef("s3://bucket/videos/video.mp4").join();
 
         assertEquals(2L, value);
-        verify(redisOps).decr(key);
-        verify(redisOps, never()).del(key);
+        verify(commands).decr(key);
+        verify(commands, never()).del(key);
     }
 
     @Test
@@ -127,15 +137,16 @@ class JobStateRepositoryRedisAdapterTest {
             "s3://bucket/frames/frame.png",
             1.0
         );
+        RedisFuture<Long> future = redisFuture(1L);
 
-        when(redisOps.hset(anyString(), anyMap())).thenReturn(CompletableFuture.completedFuture(1L));
+        when(commands.hset(anyString(), anyMap())).thenReturn(future);
 
         adapter.markRunning("job-55", command).join();
         adapter.markError("job-55", command, "boom").join();
 
         final var captor = ArgumentCaptor.forClass(Map.class);
 
-        verify(redisOps, times(2)).hset(anyString(), captor.capture());
+        verify(commands, times(2)).hset(anyString(), captor.capture());
 
         @SuppressWarnings("unchecked")
         Map<String, String> fields = (Map<String, String>) captor.getAllValues().get(1);
@@ -143,6 +154,13 @@ class JobStateRepositoryRedisAdapterTest {
         assertEquals("ERROR", fields.get("status"));
         assertEquals("boom", fields.get("errorDescription"));
         assertEquals("55", fields.get("videoId"));
+    }
+
+    private static <T> RedisFuture<T> redisFuture(T value) {
+        @SuppressWarnings("unchecked")
+        RedisFuture<T> future = mock(RedisFuture.class);
+        when(future.toCompletableFuture()).thenReturn(CompletableFuture.completedFuture(value));
+        return future;
     }
 
 }

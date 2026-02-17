@@ -4,9 +4,9 @@ import es.mblcu.videomanager.domain.frame.ExtractFrameCommand;
 import es.mblcu.videomanager.domain.frame.ExtractFrameResult;
 import es.mblcu.videomanager.domain.jobs.JobState;
 import es.mblcu.videomanager.domain.jobs.JobStateRepository;
-import es.mblcu.videomanager.domain.jobs.RedisOps;
 import es.mblcu.videomanager.domain.jobs.vo.JobStatus;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.api.StatefulRedisConnection;
 
 import java.util.Map;
@@ -18,7 +18,7 @@ public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoC
     private final String keyPrefix;
     private final RedisClient redisClient;
     private final StatefulRedisConnection<String, String> connection;
-    private final RedisOps redisOps;
+    private final RedisAsyncCommands<String, String> commands;
 
     public JobStateRepositoryRedisAdapter(RedisConfig config) {
         this(config.keyPrefix(), RedisClient.create(config.uri()));
@@ -28,19 +28,19 @@ public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoC
         this.keyPrefix = keyPrefix;
         this.redisClient = redisClient;
         this.connection = redisClient.connect();
-        this.redisOps = new LettuceRedisOps(this.connection);
+        this.commands = this.connection.async();
     }
 
-    JobStateRepositoryRedisAdapter(String keyPrefix, RedisOps redisOps) {
+    JobStateRepositoryRedisAdapter(String keyPrefix, RedisAsyncCommands<String, String> commands) {
         this.keyPrefix = keyPrefix;
         this.redisClient = null;
         this.connection = null;
-        this.redisOps = redisOps;
+        this.commands = commands;
     }
 
     @Override
     public CompletableFuture<Optional<JobState>> findJob(String jobId) {
-        return redisOps.hgetall(jobKey(jobId))
+        return commands.hgetall(jobKey(jobId)).toCompletableFuture()
             .thenApply(map -> map == null || map.isEmpty() ? Optional.empty() : Optional.of(mapToState(jobId, map)));
     }
 
@@ -53,7 +53,7 @@ public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoC
             "status", JobStatus.RUNNING.name()
         );
 
-        return redisOps.hset(jobKey(jobId), fields).thenApply(ignore -> null);
+        return commands.hset(jobKey(jobId), fields).toCompletableFuture().thenApply(ignore -> null);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoC
             "errorDescription", ""
         );
 
-        return redisOps.hset(jobKey(jobId), fields).thenApply(ignore -> null);
+        return commands.hset(jobKey(jobId), fields).toCompletableFuture().thenApply(ignore -> null);
     }
 
     @Override
@@ -79,22 +79,22 @@ public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoC
             "errorDescription", errorDescription == null ? "" : errorDescription
         );
 
-        return redisOps.hset(jobKey(jobId), fields).thenApply(ignore -> null);
+        return commands.hset(jobKey(jobId), fields).toCompletableFuture().thenApply(ignore -> null);
     }
 
     @Override
     public CompletableFuture<Long> incrementVideoRef(String videoS3Path) {
-        return redisOps.incr(videoRefKey(videoS3Path));
+        return commands.incr(videoRefKey(videoS3Path)).toCompletableFuture();
     }
 
     @Override
     public CompletableFuture<Long> decrementVideoRef(String videoS3Path) {
         String key = videoRefKey(videoS3Path);
 
-        return redisOps.decr(key)
+        return commands.decr(key).toCompletableFuture()
             .thenCompose(value -> {
                 if (value <= 0) {
-                    return redisOps.del(key).thenApply(ignored -> 0L);
+                    return commands.del(key).toCompletableFuture().thenApply(ignored -> 0L);
                 }
                 return CompletableFuture.completedFuture(value);
             });
