@@ -107,6 +107,12 @@ Stop:
 docker compose down
 ```
 
+Run acceptance tests (Cucumber + Docker):
+
+```bash
+mvn -q -Patdd verify
+```
+
 Useful endpoints in local machine:
 
 - Kafka: `localhost:9092`
