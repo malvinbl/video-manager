@@ -85,3 +85,31 @@ Run service:
 ```bash
 mvn -q exec:java -Dexec.mainClass=es.mblcu.videomanager.Application
 ```
+
+## Local Docker Environment
+
+Services included:
+
+- `app` (video-manager)
+- `kafka` (single-node KRaft)
+- `redis`
+- `minio` (S3-compatible)
+
+Start:
+
+```bash
+docker compose up -d --build
+```
+
+Stop:
+
+```bash
+docker compose down
+```
+
+Useful endpoints in local machine:
+
+- Kafka: `localhost:9092`
+- Redis: `localhost:6379`
+- MinIO S3 API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9001` (user: `minio-root-user`, password: `minio-root-password`)
