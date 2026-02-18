@@ -2,6 +2,7 @@ package es.mblcu.videomanager;
 
 import es.mblcu.videomanager.application.usecase.ExtractFrameUseCase;
 import es.mblcu.videomanager.application.service.LocalWorkspaceService;
+import es.mblcu.videomanager.application.usecase.StartupRecoveryUseCase;
 import es.mblcu.videomanager.infrastructure.ffmpeg.FfmpegFrameExtractionAdapter;
 import es.mblcu.videomanager.infrastructure.kafka.ExtractFrameKafkaConsumer;
 import es.mblcu.videomanager.infrastructure.kafka.ExtractFrameKafkaConsumerConfig;
@@ -47,6 +48,11 @@ public final class Application {
                 producer.close();
                 jobStateRepositoryRedisAdapter.close();
             }));
+        }
+
+        final var recovered = new StartupRecoveryUseCase(jobStateRepositoryRedisAdapter).recoverRunningJobs().join();
+        if (recovered > 0) {
+            log.warn("Startup recovery completed. jobsRecovered={}", recovered);
         }
 
         log.info(

@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -154,6 +155,33 @@ class JobStateRepositoryRedisAdapterTest {
         assertEquals("ERROR", fields.get("status"));
         assertEquals("boom", fields.get("errorDescription"));
         assertEquals("55", fields.get("videoId"));
+    }
+
+    @Test
+    void shouldFindJobsByStatus() {
+        RedisFuture<List<String>> keysFuture = redisFuture(List.of("vm:job:job-1", "vm:job:job-2"));
+        RedisFuture<Map<String, String>> job1Future = redisFuture(Map.of(
+            "videoId", "1",
+            "videoS3Path", "s3://bucket/videos/v1.mp4",
+            "frameS3Path", "s3://bucket/frames/f1.png",
+            "status", "RUNNING"
+        ));
+        RedisFuture<Map<String, String>> job2Future = redisFuture(Map.of(
+            "videoId", "2",
+            "videoS3Path", "s3://bucket/videos/v2.mp4",
+            "frameS3Path", "s3://bucket/frames/f2.png",
+            "status", "SUCCESS"
+        ));
+
+        when(commands.keys("vm:job:*")).thenReturn(keysFuture);
+        when(commands.hgetall("vm:job:job-1")).thenReturn(job1Future);
+        when(commands.hgetall("vm:job:job-2")).thenReturn(job2Future);
+
+        List<JobState> jobs = adapter.findJobsByStatus(JobStatus.RUNNING).join();
+
+        assertEquals(1, jobs.size());
+        assertEquals("job-1", jobs.get(0).jobId());
+        assertEquals(JobStatus.RUNNING, jobs.get(0).status());
     }
 
     private static <T> RedisFuture<T> redisFuture(T value) {

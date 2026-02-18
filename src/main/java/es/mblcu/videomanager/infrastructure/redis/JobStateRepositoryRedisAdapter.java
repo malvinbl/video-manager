@@ -11,6 +11,8 @@ import io.lettuce.core.api.StatefulRedisConnection;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoCloseable {
@@ -42,6 +44,33 @@ public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoC
     public CompletableFuture<Optional<JobState>> findJob(String jobId) {
         return commands.hgetall(jobKey(jobId)).toCompletableFuture()
             .thenApply(map -> map == null || map.isEmpty() ? Optional.empty() : Optional.of(mapToState(jobId, map)));
+    }
+
+    @Override
+    public CompletableFuture<List<JobState>> findJobsByStatus(JobStatus status) {
+        String pattern = keyPrefix + ":job:*";
+
+        return commands.keys(pattern).toCompletableFuture()
+            .thenCompose(keys -> {
+                if (keys == null || keys.isEmpty()) {
+                    return CompletableFuture.completedFuture(List.of());
+                }
+
+                List<CompletableFuture<Optional<JobState>>> futures = new ArrayList<>(keys.size());
+                for (String key : keys) {
+                    String jobId = keyToJobId(key);
+                    CompletableFuture<Optional<JobState>> future = commands.hgetall(key).toCompletableFuture()
+                        .thenApply(map -> map == null || map.isEmpty() ? Optional.<JobState>empty() : Optional.of(mapToState(jobId, map)));
+                    futures.add(future);
+                }
+
+                CompletableFuture<Void> all = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+                return all.thenApply(v -> futures.stream()
+                    .map(CompletableFuture::join)
+                    .flatMap(Optional::stream)
+                    .filter(job -> job.status() == status)
+                    .toList());
+            });
     }
 
     @Override
@@ -141,6 +170,11 @@ public class JobStateRepositoryRedisAdapter implements JobStateRepository, AutoC
 
     private String videoRefKey(String videoS3Path) {
         return keyPrefix + ":video:ref:" + videoS3Path;
+    }
+
+    private String keyToJobId(String fullKey) {
+        String prefix = keyPrefix + ":job:";
+        return fullKey.startsWith(prefix) ? fullKey.substring(prefix.length()) : fullKey;
     }
 
 }
