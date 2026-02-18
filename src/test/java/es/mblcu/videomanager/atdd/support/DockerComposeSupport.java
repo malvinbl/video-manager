@@ -32,6 +32,35 @@ public class DockerComposeSupport {
             .toList();
     }
 
+    public void execInService(String service, String... command) {
+        List<String> fullCommand = new java.util.ArrayList<>();
+        fullCommand.add("docker");
+        fullCommand.add("compose");
+        fullCommand.add("exec");
+        fullCommand.add("-T");
+        fullCommand.add(service);
+        fullCommand.addAll(List.of(command));
+        runOrFail(fullCommand, Duration.ofMinutes(3));
+    }
+
+    public String execInServiceAndGetOutput(String service, String... command) {
+        List<String> fullCommand = new java.util.ArrayList<>();
+        fullCommand.add("docker");
+        fullCommand.add("compose");
+        fullCommand.add("exec");
+        fullCommand.add("-T");
+        fullCommand.add(service);
+        fullCommand.addAll(List.of(command));
+        return runOrFail(fullCommand, Duration.ofMinutes(3));
+    }
+
+    public void copyFromService(String service, String sourcePath, Path targetPath) {
+        runOrFail(
+            List.of("docker", "compose", "cp", service + ":" + sourcePath, targetPath.toString()),
+            Duration.ofMinutes(2)
+        );
+    }
+
     private String runOrFail(List<String> command, Duration timeout) {
         final var processBuilder = new ProcessBuilder(command);
         processBuilder.directory(workdir.toFile());

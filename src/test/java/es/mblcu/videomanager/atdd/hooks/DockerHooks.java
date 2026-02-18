@@ -17,7 +17,9 @@ public class DockerHooks {
 
     @AfterAll
     public static void stopStack() {
-        DOCKER.down();
+        if (!Boolean.getBoolean("atdd.keep.stack")) {
+            DOCKER.down();
+        }
     }
 
 }

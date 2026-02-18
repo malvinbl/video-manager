@@ -115,7 +115,7 @@ mvn -q -Patdd verify
 
 Useful endpoints in local machine:
 
-- Kafka: `localhost:9092`
+- Kafka: `localhost:19092`
 - Redis: `localhost:6379`
 - MinIO S3 API: `http://localhost:9000`
 - MinIO Console: `http://localhost:9001` (user: `minio-root-user`, password: `minio-root-password`)

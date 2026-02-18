@@ -1,10 +1,9 @@
-# language: es
-Característica: Entorno docker local
-  Como equipo de desarrollo
-  Quiero validar el stack local del servicio
-  Para ejecutar pruebas de aceptación en un entorno realista
+Feature: Local docker environment
+  As a development team
+  I want to validate the local service stack
+  So that acceptance tests run in a realistic setup
 
-  Escenario: Servicios base disponibles
-    Dado que el stack docker de video-manager esta iniciado
-    Cuando consulto los servicios docker en ejecucion
-    Entonces los servicios "kafka,redis,minio,app" estan en estado running
+  Scenario: Base services are available
+    Given que el stack docker de video-manager esta iniciado
+    When consulto los servicios docker en ejecucion
+    Then los servicios "kafka,redis,minio,app" estan en estado running
