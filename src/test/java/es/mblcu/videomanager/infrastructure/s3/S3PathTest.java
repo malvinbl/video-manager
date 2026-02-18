@@ -2,7 +2,7 @@ package es.mblcu.videomanager.infrastructure.s3;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class S3PathTest {
 
@@ -10,16 +10,16 @@ class S3PathTest {
     void shouldParseS3Uri() {
         S3Path path = S3Path.parse("s3://my-bucket/videos/sample.mp4", "default-bucket");
 
-        assertEquals("my-bucket", path.bucket());
-        assertEquals("videos/sample.mp4", path.key());
+        assertThat(path.bucket()).isEqualTo("my-bucket");
+        assertThat(path.key()).isEqualTo("videos/sample.mp4");
     }
 
     @Test
     void shouldUseDefaultBucketForRawKey() {
         S3Path path = S3Path.parse("videos/sample.mp4", "default-bucket");
 
-        assertEquals("default-bucket", path.bucket());
-        assertEquals("videos/sample.mp4", path.key());
+        assertThat(path.bucket()).isEqualTo("default-bucket");
+        assertThat(path.key()).isEqualTo("videos/sample.mp4");
     }
 
 }

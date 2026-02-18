@@ -14,10 +14,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FfmpegFrameExtractionAdapterTest {
 
@@ -27,21 +25,22 @@ class FfmpegFrameExtractionAdapterTest {
 
         final var built = adapter.buildCommand(Path.of("in.mp4"), Path.of("out/frame.png"), 1.25);
 
-        assertEquals(
-            List.of("ffmpeg", "-y", "-ss", "1.25", "-i", "in.mp4", "-frames:v", "1", "-q:v", "2", "out/frame.png"),
-            built
-        );
+        assertThat(built)
+            .isEqualTo(List.of("ffmpeg", "-y", "-ss", "1.25", "-i", "in.mp4", "-frames:v", "1", "-q:v", "2", "out/frame.png"));
     }
 
     @Test
     void shouldFailWhenBinaryIsBlank() {
-        assertThrows(IllegalArgumentException.class, () -> new FfmpegFrameExtractionAdapter("", Duration.ofSeconds(10)));
+        assertThatThrownBy(() -> new FfmpegFrameExtractionAdapter("", Duration.ofSeconds(10)))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void shouldFailWhenTimeoutIsInvalid() {
-        assertThrows(IllegalArgumentException.class, () -> new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ZERO));
-        assertThrows(IllegalArgumentException.class, () -> new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(-1)));
+        assertThatThrownBy(() -> new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ZERO))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(-1)))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -51,7 +50,7 @@ class FfmpegFrameExtractionAdapterTest {
 
         adapter.ensureOutputDirectoryExists(outputFile);
 
-        assertTrue(Files.exists(outputFile.getParent()));
+        assertThat(Files.exists(outputFile.getParent())).isTrue();
     }
 
     @Test
@@ -60,10 +59,10 @@ class FfmpegFrameExtractionAdapterTest {
         final var outputFile = tempDir.resolve("frame.png");
         final var process = new FakeProcess(false, 0, "running");
 
-        final var ex = assertThrows(FrameExtractionException.class, () -> adapter.waitForFinish(outputFile, process));
-
-        assertTrue(ex.getMessage().contains("timeout"));
-        assertTrue(process.destroyForciblyCalled);
+        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process))
+            .isInstanceOf(FrameExtractionException.class)
+            .hasMessageContaining("timeout");
+        assertThat(process.destroyForciblyCalled).isTrue();
     }
 
     @Test
@@ -72,9 +71,10 @@ class FfmpegFrameExtractionAdapterTest {
         final var outputFile = tempDir.resolve("frame.png");
         final var process = new FakeProcess(true, 2, "ffmpeg error line");
 
-        final var ex = assertThrows(FrameExtractionException.class, () -> adapter.waitForFinish(outputFile, process));
-        assertTrue(ex.getMessage().contains("exit code 2"));
-        assertTrue(ex.getMessage().contains("ffmpeg error line"));
+        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process))
+            .isInstanceOf(FrameExtractionException.class)
+            .hasMessageContaining("exit code 2")
+            .hasMessageContaining("ffmpeg error line");
     }
 
     @Test
@@ -83,8 +83,9 @@ class FfmpegFrameExtractionAdapterTest {
         final var outputFile = tempDir.resolve("missing.png");
         final var process = new FakeProcess(true, 0, "ok");
 
-        final var ex = assertThrows(FrameExtractionException.class, () -> adapter.waitForFinish(outputFile, process));
-        assertTrue(ex.getMessage().contains("output file was not generated"));
+        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process))
+            .isInstanceOf(FrameExtractionException.class)
+            .hasMessageContaining("output file was not generated");
     }
 
     @Test
@@ -96,7 +97,7 @@ class FfmpegFrameExtractionAdapterTest {
 
         adapter.waitForFinish(outputFile, process);
 
-        assertFalse(process.destroyForciblyCalled);
+        assertThat(process.destroyForciblyCalled).isFalse();
     }
 
     private static final class FakeProcess extends Process {

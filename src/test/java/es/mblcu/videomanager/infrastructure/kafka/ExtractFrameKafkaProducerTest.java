@@ -16,8 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.util.concurrent.CompletionException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -54,14 +54,14 @@ class ExtractFrameKafkaProducerTest {
         verify(kafkaProducer).send(captor.capture(), any(Callback.class));
         ProducerRecord<String, String> record = captor.getValue();
 
-        assertEquals("response-topic", record.topic());
-        assertEquals("42", record.key());
+        assertThat(record.topic()).isEqualTo("response-topic");
+        assertThat(record.key()).isEqualTo("42");
 
         final var json = objectMapper.readTree(record.value());
 
-        assertEquals(42L, json.get("videoId").asLong());
-        assertEquals("s3://bucket/frames/frame.png", json.get("frameS3Path").asText());
-        assertEquals("success", json.get("status").asText());
+        assertThat(json.get("videoId").asLong()).isEqualTo(42L);
+        assertThat(json.get("frameS3Path").asText()).isEqualTo("s3://bucket/frames/frame.png");
+        assertThat(json.get("status").asText()).isEqualTo("success");
     }
 
     @Test
@@ -81,8 +81,8 @@ class ExtractFrameKafkaProducerTest {
 
         final var json = objectMapper.readTree(captor.getValue().value());
 
-        assertEquals("ERROR", json.get("status").asText());
-        assertEquals("Unknown error", json.get("errorDescription").asText());
+        assertThat(json.get("status").asText()).isEqualTo("ERROR");
+        assertThat(json.get("errorDescription").asText()).isEqualTo("Unknown error");
     }
 
     @Test
@@ -97,8 +97,9 @@ class ExtractFrameKafkaProducerTest {
 
         final var result = new ExtractFrameResult(42L, "s3://bucket/frames/frame.png", Duration.ofMillis(12));
 
-        final var ex = assertThrows(CompletionException.class, () -> producer.publishSuccess(result).join());
-        assertEquals(kafkaError, ex.getCause());
+        assertThatThrownBy(() -> producer.publishSuccess(result).join())
+            .isInstanceOf(CompletionException.class)
+            .hasCause(kafkaError);
     }
 
 }

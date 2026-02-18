@@ -15,10 +15,9 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,16 +40,17 @@ class FileRepositoryS3AdapterTest {
         when(minioAsyncClient.downloadObject(any(DownloadObjectArgs.class)))
             .thenReturn(CompletableFuture.completedFuture(null));
 
-        assertDoesNotThrow(() -> adapter.download("s3://source-bucket/videos/input.mp4", Path.of("tmp/input.mp4")).join());
+        assertThatCode(() -> adapter.download("s3://source-bucket/videos/input.mp4", Path.of("tmp/input.mp4")).join())
+            .doesNotThrowAnyException();
 
         final var requestCaptor = ArgumentCaptor.forClass(DownloadObjectArgs.class);
         verify(minioAsyncClient).downloadObject(requestCaptor.capture());
 
         final var request = requestCaptor.getValue();
 
-        assertEquals("source-bucket", request.bucket());
-        assertEquals("videos/input.mp4", request.object());
-        assertEquals("tmp/input.mp4", request.filename());
+        assertThat(request.bucket()).isEqualTo("source-bucket");
+        assertThat(request.object()).isEqualTo("videos/input.mp4");
+        assertThat(request.filename()).isEqualTo("tmp/input.mp4");
     }
 
     @Test
@@ -60,26 +60,24 @@ class FileRepositoryS3AdapterTest {
         when(minioAsyncClient.uploadObject(any(UploadObjectArgs.class)))
             .thenReturn(CompletableFuture.completedFuture(null));
 
-        assertDoesNotThrow(() -> adapter.upload(localSource, "frames/output.png").join());
+        assertThatCode(() -> adapter.upload(localSource, "frames/output.png").join())
+            .doesNotThrowAnyException();
 
         final var requestCaptor = ArgumentCaptor.forClass(UploadObjectArgs.class);
         verify(minioAsyncClient).uploadObject(requestCaptor.capture());
 
         final var request = requestCaptor.getValue();
 
-        assertEquals("video-bucket", request.bucket());
-        assertEquals("frames/output.png", request.object());
-        assertEquals(localSource.toString(), request.filename());
+        assertThat(request.bucket()).isEqualTo("video-bucket");
+        assertThat(request.object()).isEqualTo("frames/output.png");
+        assertThat(request.filename()).isEqualTo(localSource.toString());
     }
 
     @Test
     void shouldWrapInvalidDownloadPath() {
-        IllegalArgumentException ex = assertThrows(
-            IllegalArgumentException.class,
-            () -> adapter.download("s3://broken", Path.of("tmp/input.mp4"))
-        );
-
-        assertTrue(ex.getMessage().contains("Invalid S3 URI"));
+        assertThatThrownBy(() -> adapter.download("s3://broken", Path.of("tmp/input.mp4")))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid S3 URI");
     }
 
     @Test
@@ -90,12 +88,9 @@ class FileRepositoryS3AdapterTest {
         when(minioAsyncClient.uploadObject(any(UploadObjectArgs.class)))
             .thenReturn(CompletableFuture.failedFuture(rootCause));
 
-        final var ex = assertThrows(
-            CompletionException.class,
-            () -> adapter.upload(localSource, "frames/output.png").join()
-        );
-
-        assertEquals(rootCause, ex.getCause());
+        assertThatThrownBy(() -> adapter.upload(localSource, "frames/output.png").join())
+            .isInstanceOf(CompletionException.class)
+            .hasCause(rootCause);
     }
 
     @Test
@@ -106,14 +101,11 @@ class FileRepositoryS3AdapterTest {
         when(minioAsyncClient.uploadObject(any(UploadObjectArgs.class)))
             .thenThrow(rootCause);
 
-        final var ex = assertThrows(
-            CompletionException.class,
-            () -> adapter.upload(localSource, "frames/output.png").join()
-        );
-
-        assertEquals(IllegalStateException.class, ex.getCause().getClass());
-        assertTrue(ex.getCause().getMessage().contains("Cannot prepare upload"));
-        assertEquals(rootCause, ex.getCause().getCause());
+        assertThatThrownBy(() -> adapter.upload(localSource, "frames/output.png").join())
+            .isInstanceOf(CompletionException.class)
+            .hasCauseInstanceOf(IllegalStateException.class)
+            .rootCause()
+            .isEqualTo(rootCause);
     }
 
 }

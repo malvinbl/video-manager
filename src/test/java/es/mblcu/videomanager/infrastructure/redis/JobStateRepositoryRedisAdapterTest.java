@@ -19,9 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -51,7 +49,7 @@ class JobStateRepositoryRedisAdapterTest {
 
         Optional<JobState> state = adapter.findJob("job-1").join();
 
-        assertTrue(state.isEmpty());
+        assertThat(state).isEmpty();
         verify(commands).hgetall("vm:job:job-1");
     }
 
@@ -70,12 +68,12 @@ class JobStateRepositoryRedisAdapterTest {
 
         Optional<JobState> state = adapter.findJob("job-1").join();
 
-        assertTrue(state.isPresent());
-        assertEquals("job-1", state.get().jobId());
-        assertEquals(101L, state.get().videoId());
-        assertEquals(JobStatus.SUCCESS, state.get().status());
-        assertEquals(12L, state.get().elapsedMillis());
-        assertNull(state.get().errorDescription());
+        assertThat(state).isPresent();
+        assertThat(state.get().jobId()).isEqualTo("job-1");
+        assertThat(state.get().videoId()).isEqualTo(101L);
+        assertThat(state.get().status()).isEqualTo(JobStatus.SUCCESS);
+        assertThat(state.get().elapsedMillis()).isEqualTo(12L);
+        assertThat(state.get().errorDescription()).isNull();
     }
 
     @Test
@@ -94,10 +92,10 @@ class JobStateRepositoryRedisAdapterTest {
         @SuppressWarnings("unchecked")
         Map<String, String> fields = (Map<String, String>) captor.getValue();
 
-        assertEquals("77", fields.get("videoId"));
-        assertEquals("s3://bucket/frames/frame.png", fields.get("frameS3Path"));
-        assertEquals("SUCCESS", fields.get("status"));
-        assertEquals("30", fields.get("elapsedMillis"));
+        assertThat(fields.get("videoId")).isEqualTo("77");
+        assertThat(fields.get("frameS3Path")).isEqualTo("s3://bucket/frames/frame.png");
+        assertThat(fields.get("status")).isEqualTo("SUCCESS");
+        assertThat(fields.get("elapsedMillis")).isEqualTo("30");
     }
 
     @Test
@@ -111,7 +109,7 @@ class JobStateRepositoryRedisAdapterTest {
 
         long value = adapter.decrementVideoRef("s3://bucket/videos/video.mp4").join();
 
-        assertEquals(0L, value);
+        assertThat(value).isEqualTo(0L);
         verify(commands).decr(key);
         verify(commands).del(key);
     }
@@ -125,7 +123,7 @@ class JobStateRepositoryRedisAdapterTest {
 
         long value = adapter.decrementVideoRef("s3://bucket/videos/video.mp4").join();
 
-        assertEquals(2L, value);
+        assertThat(value).isEqualTo(2L);
         verify(commands).decr(key);
         verify(commands, never()).del(key);
     }
@@ -152,9 +150,9 @@ class JobStateRepositoryRedisAdapterTest {
         @SuppressWarnings("unchecked")
         Map<String, String> fields = (Map<String, String>) captor.getAllValues().get(1);
 
-        assertEquals("ERROR", fields.get("status"));
-        assertEquals("boom", fields.get("errorDescription"));
-        assertEquals("55", fields.get("videoId"));
+        assertThat(fields.get("status")).isEqualTo("ERROR");
+        assertThat(fields.get("errorDescription")).isEqualTo("boom");
+        assertThat(fields.get("videoId")).isEqualTo("55");
     }
 
     @Test
@@ -179,9 +177,9 @@ class JobStateRepositoryRedisAdapterTest {
 
         List<JobState> jobs = adapter.findJobsByStatus(JobStatus.RUNNING).join();
 
-        assertEquals(1, jobs.size());
-        assertEquals("job-1", jobs.get(0).jobId());
-        assertEquals(JobStatus.RUNNING, jobs.get(0).status());
+        assertThat(jobs).hasSize(1);
+        assertThat(jobs.get(0).jobId()).isEqualTo("job-1");
+        assertThat(jobs.get(0).status()).isEqualTo(JobStatus.RUNNING);
     }
 
     private static <T> RedisFuture<T> redisFuture(T value) {

@@ -9,8 +9,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class EnvironmentAvailabilitySteps {
 
@@ -20,7 +19,7 @@ public class EnvironmentAvailabilitySteps {
     @Given("que el stack docker de video-manager esta iniciado")
     public void stackIniciado() {
         runningServices = docker.runningServices();
-        assertFalse(runningServices.isEmpty(), "No Docker services are running");
+        assertThat(runningServices).isNotEmpty();
     }
 
     @When("consulto los servicios docker en ejecucion")
@@ -36,10 +35,9 @@ public class EnvironmentAvailabilitySteps {
             .toList();
 
         for (String service : expected) {
-            assertTrue(
-                runningServices.contains(service),
-                "Service not found in running state: " + service + ". running=" + runningServices
-            );
+            assertThat(runningServices)
+                .as("Service not found in running state: " + service + ". running=" + runningServices)
+                .contains(service);
         }
     }
 

@@ -2,8 +2,8 @@ package es.mblcu.videomanager.infrastructure.kafka;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ExtractFrameMessageMapperTest {
 
@@ -22,10 +22,10 @@ class ExtractFrameMessageMapperTest {
 
         final var command = mapper.toCommand(payload);
 
-        assertEquals(1001L, command.videoId());
-        assertEquals("s3://bucket/videos/video.mp4", command.videoS3Path());
-        assertEquals("s3://bucket/frames/frame.png", command.frameS3Path());
-        assertEquals(2.5d, command.second());
+        assertThat(command.videoId()).isEqualTo(1001L);
+        assertThat(command.videoS3Path()).isEqualTo("s3://bucket/videos/video.mp4");
+        assertThat(command.frameS3Path()).isEqualTo("s3://bucket/frames/frame.png");
+        assertThat(command.second()).isEqualTo(2.5d);
     }
 
     @Test
@@ -40,15 +40,16 @@ class ExtractFrameMessageMapperTest {
 
         final var command = mapper.toCommand(payload);
 
-        assertEquals(1002L, command.videoId());
-        assertEquals("s3://bucket/videos/video.mp4", command.videoS3Path());
-        assertEquals("s3://bucket/frames/frame.png", command.frameS3Path());
-        assertEquals(1.0d, command.second());
+        assertThat(command.videoId()).isEqualTo(1002L);
+        assertThat(command.videoS3Path()).isEqualTo("s3://bucket/videos/video.mp4");
+        assertThat(command.frameS3Path()).isEqualTo("s3://bucket/frames/frame.png");
+        assertThat(command.second()).isEqualTo(1.0d);
     }
 
     @Test
     void shouldFailWithInvalidJson() {
-        assertThrows(IllegalArgumentException.class, () -> mapper.toCommand("not-json"));
+        assertThatThrownBy(() -> mapper.toCommand("not-json"))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
 }

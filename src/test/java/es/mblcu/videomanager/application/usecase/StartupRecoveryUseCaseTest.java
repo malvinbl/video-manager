@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -40,7 +40,7 @@ class StartupRecoveryUseCaseTest {
 
         int recovered = useCase.recoverRunningJobs().join();
 
-        assertEquals(0, recovered);
+        assertThat(recovered).isZero();
         verify(repository, never()).markError(any(), any(), any());
     }
 
@@ -62,17 +62,17 @@ class StartupRecoveryUseCaseTest {
 
         int recovered = useCase.recoverRunningJobs().join();
 
-        assertEquals(1, recovered);
+        assertThat(recovered).isEqualTo(1);
 
         ArgumentCaptor<ExtractFrameCommand> commandCaptor = ArgumentCaptor.forClass(ExtractFrameCommand.class);
         verify(repository).markError(eq(running.jobId()), commandCaptor.capture(), eq("Recovered at startup after previous unclean shutdown"));
 
         final var command = commandCaptor.getValue();
 
-        assertEquals(100L, command.videoId());
-        assertEquals("s3://bucket/videos/video.mp4", command.videoS3Path());
-        assertEquals("s3://bucket/frames/frame.png", command.frameS3Path());
-        assertEquals(2.5d, command.second());
+        assertThat(command.videoId()).isEqualTo(100L);
+        assertThat(command.videoS3Path()).isEqualTo("s3://bucket/videos/video.mp4");
+        assertThat(command.frameS3Path()).isEqualTo("s3://bucket/frames/frame.png");
+        assertThat(command.second()).isEqualTo(2.5d);
     }
 
 }

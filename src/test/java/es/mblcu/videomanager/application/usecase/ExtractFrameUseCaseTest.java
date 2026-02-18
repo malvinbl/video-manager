@@ -27,8 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -80,24 +79,24 @@ class ExtractFrameUseCaseTest {
         when(frameExtractionPort.extractFrame(any(Path.class), any(Path.class), eq(command.second()))).thenAnswer(invocation -> {
             Path localVideo = invocation.getArgument(0);
             Path localFrame = invocation.getArgument(1);
-            assertTrue(Files.exists(localVideo));
+            assertThat(Files.exists(localVideo)).isTrue();
             Files.writeString(localFrame, "frame-bytes");
             return CompletableFuture.completedFuture(Duration.ofMillis(12));
         });
         when(fileRepository.upload(any(Path.class), eq(command.frameS3Path()))).thenAnswer(invocation -> {
             uploads.incrementAndGet();
             Path localFrame = invocation.getArgument(0);
-            assertTrue(Files.exists(localFrame));
+            assertThat(Files.exists(localFrame)).isTrue();
             return CompletableFuture.completedFuture(null);
         });
 
         final var result = useCase.execute(command).join();
 
-        assertEquals(1, downloads.get());
-        assertEquals(1, uploads.get());
-        assertEquals(101L, result.videoId());
-        assertEquals("s3://bucket/frames/frame.png", result.frameS3Path());
-        assertEquals(Duration.ofMillis(12), result.elapsed());
+        assertThat(downloads.get()).isEqualTo(1);
+        assertThat(uploads.get()).isEqualTo(1);
+        assertThat(result.videoId()).isEqualTo(101L);
+        assertThat(result.frameS3Path()).isEqualTo("s3://bucket/frames/frame.png");
+        assertThat(result.elapsed()).isEqualTo(Duration.ofMillis(12));
 
         final var localFrame = workspace.resolveLocalFramePath(command.frameS3Path());
         final var localVideo = workspace.resolveLocalVideoPath(command.videoS3Path());
@@ -144,11 +143,11 @@ class ExtractFrameUseCaseTest {
         final var first = useCase.execute(command).join();
         final var second = useCase.execute(command).join();
 
-        assertEquals(first.videoId(), second.videoId());
-        assertEquals(first.frameS3Path(), second.frameS3Path());
-        assertEquals(1, downloads.get());
-        assertEquals(1, extractions.get());
-        assertEquals(1, uploads.get());
+        assertThat(second.videoId()).isEqualTo(first.videoId());
+        assertThat(second.frameS3Path()).isEqualTo(first.frameS3Path());
+        assertThat(downloads.get()).isEqualTo(1);
+        assertThat(extractions.get()).isEqualTo(1);
+        assertThat(uploads.get()).isEqualTo(1);
     }
 
     @Test
@@ -179,7 +178,7 @@ class ExtractFrameUseCaseTest {
         useCase.execute(command1).join();
         useCase.execute(command2).join();
 
-        assertEquals(2, downloads.get());
+        assertThat(downloads.get()).isEqualTo(2);
     }
 
     @Test
@@ -230,7 +229,7 @@ class ExtractFrameUseCaseTest {
             executor.shutdownNow();
         }
 
-        assertEquals(1, downloads.get());
+        assertThat(downloads.get()).isEqualTo(1);
         verify(fileRepository, times(1)).download(eq(command1.videoS3Path()), any(Path.class));
     }
 

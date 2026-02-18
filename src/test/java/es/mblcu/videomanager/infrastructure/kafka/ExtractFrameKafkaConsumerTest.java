@@ -15,8 +15,8 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -92,16 +92,17 @@ class ExtractFrameKafkaConsumerTest {
         ArgumentCaptor<ExtractFrameCommand> commandCaptor = ArgumentCaptor.forClass(ExtractFrameCommand.class);
         ArgumentCaptor<Throwable> throwableCaptor = ArgumentCaptor.forClass(Throwable.class);
         verify(kafkaProducer).publishError(commandCaptor.capture(), throwableCaptor.capture());
-        assertEquals(1002L, commandCaptor.getValue().videoId());
-        assertEquals(processingError, throwableCaptor.getValue());
+        assertThat(commandCaptor.getValue().videoId()).isEqualTo(1002L);
+        assertThat(throwableCaptor.getValue()).isEqualTo(processingError);
     }
 
     @Test
     void shouldFailWhenPayloadIsInvalidJson() {
         ConsumerRecord<String, String> record = new ConsumerRecord<>("request-topic", 0, 30L, "1003", "not-json");
 
-        final var ex = assertThrows(CompletionException.class, () -> consumer.processRecordAsync(record).join());
-        assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
+        assertThatThrownBy(() -> consumer.processRecordAsync(record).join())
+            .isInstanceOf(CompletionException.class)
+            .hasCauseInstanceOf(IllegalArgumentException.class);
         verify(useCase, never()).execute(any());
         verify(kafkaProducer, never()).publishSuccess(any());
         verify(kafkaProducer, never()).publishError(any(), any());

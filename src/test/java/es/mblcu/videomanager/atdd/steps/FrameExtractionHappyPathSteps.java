@@ -35,9 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class FrameExtractionHappyPathSteps {
 
@@ -84,7 +82,9 @@ public class FrameExtractionHappyPathSteps {
                 .build()
         );
 
-        assertTrue(objectExists(videoObject), "Source video was not uploaded to S3");
+        assertThat(objectExists(videoObject))
+            .as("Source video was not uploaded to S3")
+            .isTrue();
 
         Files.deleteIfExists(localVideo);
     }
@@ -112,14 +112,20 @@ public class FrameExtractionHappyPathSteps {
         String frameObject = frameS3Path.replace("s3://" + S3_BUCKET + "/", "");
 
         Map<String, Object> response = waitForMatchingResponse();
-        assertEquals("success", response.get("status"), "Kafka response status is not success");
-        assertEquals(frameS3Path, response.get("frameS3Path"), "Kafka response frame path mismatch");
+        assertThat(response.get("status"))
+            .as("Kafka response status is not success")
+            .isEqualTo("success");
+        assertThat(response.get("frameS3Path"))
+            .as("Kafka response frame path mismatch")
+            .isEqualTo(frameS3Path);
 
         await()
             .atMost(Duration.ofSeconds(60))
             .pollInterval(Duration.ofSeconds(2))
             .untilAsserted(() -> {
-                assertTrue(objectExists(frameObject), "Frame not found in S3 yet");
+                assertThat(objectExists(frameObject))
+                    .as("Frame not found in S3 yet")
+                    .isTrue();
             });
     }
 
@@ -130,7 +136,9 @@ public class FrameExtractionHappyPathSteps {
         await()
             .atMost(Duration.ofSeconds(30))
             .pollInterval(Duration.ofSeconds(2))
-            .untilAsserted(() -> assertFalse(localFileExistsInApp(localVideoPath), "Source local video still exists: " + localVideoPath));
+            .untilAsserted(() -> assertThat(localFileExistsInApp(localVideoPath))
+                .as("Source local video still exists: " + localVideoPath)
+                .isFalse());
     }
 
     private Map<String, Object> waitForMatchingResponse() {
@@ -249,7 +257,9 @@ public class FrameExtractionHappyPathSteps {
         await()
             .atMost(Duration.ofSeconds(30))
             .pollInterval(Duration.ofSeconds(2))
-            .untilAsserted(() -> assertTrue(isAppConsumerGroupReady(), "App Kafka consumer group is not ready yet"));
+            .untilAsserted(() -> assertThat(isAppConsumerGroupReady())
+                .as("App Kafka consumer group is not ready yet")
+                .isTrue());
     }
 
     private boolean isAppConsumerGroupReady() {
