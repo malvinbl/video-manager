@@ -3,7 +3,6 @@ package es.mblcu.videomanager.infrastructure.kafka;
 import es.mblcu.videomanager.application.usecase.ExtractFrameUseCase;
 import es.mblcu.videomanager.domain.frame.ExtractFrameCommand;
 import es.mblcu.videomanager.domain.frame.ExtractFrameResult;
-import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -24,17 +23,36 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RequiredArgsConstructor
 public class ExtractFrameKafkaConsumer {
 
     private final ExtractFrameKafkaConsumerConfig config;
     private final ExtractFrameUseCase useCase;
     private final ExtractFrameKafkaProducer kafkaProducer;
-    private final ExtractFrameMessageMapper messageMapper = new ExtractFrameMessageMapper();
+    private final ExtractFrameMessageMapper messageMapper;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final AtomicInteger inFlight = new AtomicInteger(0);
     private final Queue<OffsetAck> offsetAcks = new ConcurrentLinkedQueue<>();
     private final Map<TopicPartition, CompletableFuture<Void>> partitionChains = new ConcurrentHashMap<>();
+
+    public ExtractFrameKafkaConsumer(
+        ExtractFrameKafkaConsumerConfig config,
+        ExtractFrameUseCase useCase,
+        ExtractFrameKafkaProducer kafkaProducer) {
+
+        this(config, useCase, kafkaProducer, new ExtractFrameMessageMapper());
+    }
+
+    ExtractFrameKafkaConsumer(
+        ExtractFrameKafkaConsumerConfig config,
+        ExtractFrameUseCase useCase,
+        ExtractFrameKafkaProducer kafkaProducer,
+        ExtractFrameMessageMapper messageMapper) {
+
+        this.config = config;
+        this.useCase = useCase;
+        this.kafkaProducer = kafkaProducer;
+        this.messageMapper = messageMapper;
+    }
 
     public void start() {
         var props = new Properties();
@@ -81,7 +99,7 @@ public class ExtractFrameKafkaConsumer {
         });
     }
 
-    private CompletableFuture<Void> processRecordAsync(ConsumerRecord<String, String> record) {
+    CompletableFuture<Void> processRecordAsync(ConsumerRecord<String, String> record) {
         final ExtractFrameCommand command;
         try {
             command = messageMapper.toCommand(record.value());

@@ -16,11 +16,20 @@ public class ExtractFrameKafkaProducer implements AutoCloseable {
 
     private final String responseTopic;
     private final KafkaProducer<String, String> producer;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public ExtractFrameKafkaProducer(ExtractFrameKafkaConsumerConfig config) {
-        this.responseTopic = config.responseTopic();
-        this.producer = new KafkaProducer<>(producerProperties(config.bootstrapServers()));
+        this(
+            config.responseTopic(),
+            new KafkaProducer<>(producerProperties(config.bootstrapServers())),
+            new ObjectMapper()
+        );
+    }
+
+    ExtractFrameKafkaProducer(String responseTopic, KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
+        this.responseTopic = responseTopic;
+        this.producer = producer;
+        this.objectMapper = objectMapper;
     }
 
     public CompletableFuture<Void> publishSuccess(ExtractFrameResult result) {
@@ -75,7 +84,7 @@ public class ExtractFrameKafkaProducer implements AutoCloseable {
         producer.close();
     }
 
-    private Properties producerProperties(String bootstrapServers) {
+    private static Properties producerProperties(String bootstrapServers) {
         var props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());

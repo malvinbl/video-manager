@@ -1,6 +1,5 @@
 package es.mblcu.videomanager.infrastructure.kafka;
 
-import es.mblcu.videomanager.domain.frame.ExtractFrameCommand;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,7 +20,7 @@ class ExtractFrameMessageMapperTest {
             }
             """;
 
-        ExtractFrameCommand command = mapper.toCommand(payload);
+        final var command = mapper.toCommand(payload);
 
         assertEquals(1001L, command.videoId());
         assertEquals("s3://bucket/videos/video.mp4", command.videoS3Path());
@@ -39,7 +38,7 @@ class ExtractFrameMessageMapperTest {
             }
             """;
 
-        ExtractFrameCommand command = mapper.toCommand(payload);
+        final var command = mapper.toCommand(payload);
 
         assertEquals(1002L, command.videoId());
         assertEquals("s3://bucket/videos/video.mp4", command.videoS3Path());
@@ -51,4 +50,5 @@ class ExtractFrameMessageMapperTest {
     void shouldFailWithInvalidJson() {
         assertThrows(IllegalArgumentException.class, () -> mapper.toCommand("not-json"));
     }
+
 }
