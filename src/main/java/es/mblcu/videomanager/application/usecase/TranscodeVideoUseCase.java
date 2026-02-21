@@ -1,6 +1,7 @@
 package es.mblcu.videomanager.application.usecase;
 
 import es.mblcu.videomanager.application.service.LocalWorkspaceService;
+import es.mblcu.videomanager.application.service.TranscodeProfileCatalogService;
 import es.mblcu.videomanager.domain.FileRepository;
 import es.mblcu.videomanager.domain.jobs.JobStateRepository;
 import es.mblcu.videomanager.domain.jobs.vo.JobStatus;
@@ -30,7 +31,7 @@ public class TranscodeVideoUseCase {
     private final LocalWorkspaceService localWorkspaceService;
     private final JobStateRepository sharedVideoRefRepository;
     private final TranscodeJobStateRepository transcodeJobStateRepository;
-    private final TranscodeProfileCatalog profileCatalog;
+    private final TranscodeProfileCatalogService profileCatalogService;
 
     private final ConcurrentHashMap<Path, CompletableFuture<Void>> inFlightDownloads = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Object> localLocks = new ConcurrentHashMap<>();
@@ -38,7 +39,7 @@ public class TranscodeVideoUseCase {
     public CompletableFuture<TranscodeVideoResult> execute(TranscodeVideoCommand command) {
         String jobId = buildJobId(command);
 
-        if (!profileCatalog.supports(command.width(), command.height())) {
+        if (!profileCatalogService.supports(command.width(), command.height())) {
             return CompletableFuture.failedFuture(
                 new TranscodeValidationException(
                     "Unsupported dimensions: " + command.width() + "x" + command.height()
@@ -56,7 +57,7 @@ public class TranscodeVideoUseCase {
                 }
 
                 final var localVideoFile = localWorkspaceService.resolveLocalVideoPath(command.videoS3Path());
-                final var profiles = profileCatalog.profilesFor(command.width(), command.height());
+                final var profiles = profileCatalogService.profilesFor(command.width(), command.height());
                 final var targets = buildTargets(command.outputS3Prefix(), profiles);
 
                 return transcodeJobStateRepository.markRunning(jobId, command)

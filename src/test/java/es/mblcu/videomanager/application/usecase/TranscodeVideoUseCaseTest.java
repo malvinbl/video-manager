@@ -1,6 +1,7 @@
 package es.mblcu.videomanager.application.usecase;
 
 import es.mblcu.videomanager.application.service.LocalWorkspaceService;
+import es.mblcu.videomanager.application.service.TranscodeProfileCatalogService;
 import es.mblcu.videomanager.domain.FileRepository;
 import es.mblcu.videomanager.domain.jobs.JobStateRepository;
 import es.mblcu.videomanager.domain.jobs.vo.JobStatus;
@@ -62,7 +63,7 @@ class TranscodeVideoUseCaseTest {
     @BeforeEach
     void setUp() {
         workspace = new LocalWorkspaceService(tempDir);
-        final var catalog = new TranscodeProfileCatalog(Map.of(
+        final var catalog = new TranscodeProfileCatalogService(Map.of(
             "1280x720", List.of(
                 new TranscodeProfile("854x480", 854, 480, 1400),
                 new TranscodeProfile("640x360", 640, 360, 800),

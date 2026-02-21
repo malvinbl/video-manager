@@ -1,6 +1,6 @@
 package es.mblcu.videomanager.infrastructure.transcode;
 
-import es.mblcu.videomanager.application.usecase.TranscodeProfileCatalog;
+import es.mblcu.videomanager.application.service.TranscodeProfileCatalogService;
 import es.mblcu.videomanager.infrastructure.config.AppProperties;
 import es.mblcu.videomanager.domain.transcode.TranscodeProfile;
 
@@ -11,7 +11,7 @@ import java.util.Map;
 
 public final class TranscodeProfileCatalogFactory {
 
-    public static TranscodeProfileCatalog fromProperties() {
+    public static TranscodeProfileCatalogService fromProperties() {
         final var properties = AppProperties.load();
         String allowedRaw = properties.get(
             "TRANSCODE_ALLOWED_DIMENSIONS",
@@ -33,7 +33,7 @@ public final class TranscodeProfileCatalogFactory {
             profilesByInput.put(dimension, parseProfiles(dimension, profilesRaw));
         }
 
-        return new TranscodeProfileCatalog(profilesByInput);
+        return new TranscodeProfileCatalogService(profilesByInput);
     }
 
     private static List<TranscodeProfile> parseProfiles(String inputDimension, String raw) {
