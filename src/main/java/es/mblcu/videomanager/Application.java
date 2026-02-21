@@ -13,6 +13,8 @@ import es.mblcu.videomanager.infrastructure.kafka.ExtractFrameKafkaProducer;
 import es.mblcu.videomanager.infrastructure.kafka.TranscodeKafkaConfig;
 import es.mblcu.videomanager.infrastructure.kafka.TranscodeKafkaConsumer;
 import es.mblcu.videomanager.infrastructure.kafka.TranscodeKafkaProducer;
+import es.mblcu.videomanager.infrastructure.observability.Observability;
+import es.mblcu.videomanager.infrastructure.observability.ObservabilityConfig;
 import es.mblcu.videomanager.infrastructure.redis.RedisConfig;
 import es.mblcu.videomanager.infrastructure.redis.JobStateRepositoryRedisAdapter;
 import es.mblcu.videomanager.infrastructure.redis.TranscodeJobStateRepositoryRedisAdapter;
@@ -28,6 +30,10 @@ import java.time.Duration;
 public final class Application {
 
     public static void main(String[] args) {
+        final var observabilityConfig = ObservabilityConfig.fromProperties();
+        Observability.initialize(observabilityConfig);
+        Observability.markLive(true);
+
         final var config = ExtractFrameKafkaConsumerConfig.fromEnvironment();
         final var transcodeKafkaConfig = TranscodeKafkaConfig.fromEnvironment();
         final var ffmpegAdapter =
@@ -54,14 +60,18 @@ public final class Application {
         final var transcodeConsumer = new TranscodeKafkaConsumer(transcodeKafkaConfig, transcodeUseCase, transcodeProducer);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Observability.markReady(false);
+            Observability.markLive(false);
             transcodeConsumer.stop();
             transcodeProducer.close();
             transcodeJobStateRepositoryRedisAdapter.close();
+            Observability.shutdown();
         }));
 
         final var recoveredTranscode = new TranscodeStartupRecoveryUseCase(transcodeJobStateRepositoryRedisAdapter)
             .recoverRunningJobs()
             .join();
+        Observability.incrementStartupRecoveredJobs("transcode", recoveredTranscode);
         if (recoveredTranscode > 0) {
             log.warn("Startup recovery completed for transcode. jobsRecovered={}", recoveredTranscode);
         }
@@ -82,6 +92,8 @@ public final class Application {
         if (registerShutdownHook) {
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("Application shutdown requested");
+                Observability.markReady(false);
+                Observability.markLive(false);
                 consumer.stop();
                 producer.close();
                 jobStateRepositoryRedisAdapter.close();
@@ -89,6 +101,7 @@ public final class Application {
         }
 
         final var recovered = new StartupRecoveryUseCase(jobStateRepositoryRedisAdapter).recoverRunningJobs().join();
+        Observability.incrementStartupRecoveredJobs("frame", recovered);
         if (recovered > 0) {
             log.warn("Startup recovery completed. jobsRecovered={}", recovered);
         }
@@ -106,6 +119,9 @@ public final class Application {
             transcodeConfig.responseTopic(),
             config.bootstrapServers()
         );
+
+        Observability.markStarted(true);
+        Observability.markReady(true);
 
         consumer.start();
     }

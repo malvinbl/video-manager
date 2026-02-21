@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.mblcu.videomanager.domain.frame.ExtractFrameCommand;
 import es.mblcu.videomanager.domain.frame.ExtractFrameResult;
+import es.mblcu.videomanager.infrastructure.observability.Observability;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -11,6 +12,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.time.Duration;
+import java.time.Instant;
 
 public class ExtractFrameKafkaProducer implements AutoCloseable {
 
@@ -56,10 +59,14 @@ public class ExtractFrameKafkaProducer implements AutoCloseable {
     }
 
     private CompletableFuture<Void> send(ExtractFrameResponseMessage responseMessage) {
+        final var startedAt = Instant.now();
         String payload;
         try {
             payload = objectMapper.writeValueAsString(responseMessage);
         } catch (JsonProcessingException ex) {
+            Observability.incrementKafkaPublished("frame", responseTopic, "error");
+            Observability.recordExternalCallDuration("kafka", "publish_frame_response", "error",
+                Duration.between(startedAt, Instant.now()));
             return CompletableFuture.failedFuture(ex);
         }
 
@@ -69,9 +76,15 @@ public class ExtractFrameKafkaProducer implements AutoCloseable {
         CompletableFuture<Void> future = new CompletableFuture<>();
         producer.send(record, (metadata, exception) -> {
             if (exception != null) {
+                Observability.incrementKafkaPublished("frame", responseTopic, "error");
+                Observability.recordExternalCallDuration("kafka", "publish_frame_response", "error",
+                    Duration.between(startedAt, Instant.now()));
                 future.completeExceptionally(exception);
                 return;
             }
+            Observability.incrementKafkaPublished("frame", responseTopic, responseMessage.status());
+            Observability.recordExternalCallDuration("kafka", "publish_frame_response", "success",
+                Duration.between(startedAt, Instant.now()));
             future.complete(null);
         });
 

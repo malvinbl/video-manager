@@ -22,6 +22,7 @@
         <mockito.version>5.14.2</mockito.version>
         <bytebuddy.version>1.15.4</bytebuddy.version>
         <lombok.version>1.18.36</lombok.version>
+        <micrometer.version>1.13.6</micrometer.version>
         <atdd.skip>true</atdd.skip>
     </properties>
 
@@ -67,6 +68,16 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.17.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>${micrometer.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <version>${micrometer.version}</version>
         </dependency>
 
         <dependency>

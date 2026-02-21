@@ -4,11 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.mblcu.videomanager.domain.transcode.TranscodeVideoCommand;
 import es.mblcu.videomanager.domain.transcode.TranscodeVideoResult;
+import es.mblcu.videomanager.infrastructure.observability.Observability;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -55,10 +58,14 @@ public class TranscodeKafkaProducer implements AutoCloseable {
     }
 
     private CompletableFuture<Void> send(TranscodeResponseMessage responseMessage) {
+        final var startedAt = Instant.now();
         final String payload;
         try {
             payload = objectMapper.writeValueAsString(responseMessage);
         } catch (JsonProcessingException ex) {
+            Observability.incrementKafkaPublished("transcode", responseTopic, "error");
+            Observability.recordExternalCallDuration("kafka", "publish_transcode_response", "error",
+                Duration.between(startedAt, Instant.now()));
             return CompletableFuture.failedFuture(ex);
         }
 
@@ -71,9 +78,15 @@ public class TranscodeKafkaProducer implements AutoCloseable {
         final var future = new CompletableFuture<Void>();
         producer.send(record, (metadata, exception) -> {
             if (exception != null) {
+                Observability.incrementKafkaPublished("transcode", responseTopic, "error");
+                Observability.recordExternalCallDuration("kafka", "publish_transcode_response", "error",
+                    Duration.between(startedAt, Instant.now()));
                 future.completeExceptionally(exception);
                 return;
             }
+            Observability.incrementKafkaPublished("transcode", responseTopic, responseMessage.status());
+            Observability.recordExternalCallDuration("kafka", "publish_transcode_response", "success",
+                Duration.between(startedAt, Instant.now()));
             future.complete(null);
         });
 

@@ -87,4 +87,7 @@ services:
       VIDEO_MANAGER_S3_ACCESS_KEY: minio-root-user
       VIDEO_MANAGER_S3_SECRET_KEY: minio-root-password
       LOCAL_WORKSPACE_DIR: /tmp/.videomanager-work
+      OBSERVABILITY_PORT: "8081"
+    ports:
+      - "8081:8081"
     restart: unless-stopped

@@ -3,6 +3,7 @@ package es.mblcu.videomanager.infrastructure.kafka;
 import es.mblcu.videomanager.application.usecase.ExtractFrameUseCase;
 import es.mblcu.videomanager.domain.frame.ExtractFrameCommand;
 import es.mblcu.videomanager.domain.frame.ExtractFrameResult;
+import es.mblcu.videomanager.infrastructure.observability.Observability;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -12,6 +13,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,21 +102,37 @@ public class ExtractFrameKafkaConsumer {
     }
 
     CompletableFuture<Void> processRecordAsync(ConsumerRecord<String, String> record) {
+        final var startedAt = Instant.now();
         final ExtractFrameCommand command;
         try {
             command = messageMapper.toCommand(record.value());
         } catch (Exception ex) {
+            Observability.incrementKafkaConsumed("frame", record.topic(), "parse_error");
+            Observability.recordProcessingDuration(
+                "frame",
+                "extract_frame",
+                "error",
+                Duration.between(startedAt, Instant.now())
+            );
             return CompletableFuture.failedFuture(ex);
         }
 
         return useCase.execute(command)
-            .thenCompose(result -> onSuccess(record, result))
-            .exceptionallyCompose(ex -> onError(record, command, ex));
+            .thenCompose(result -> onSuccess(record, result, startedAt))
+            .exceptionallyCompose(ex -> onError(record, command, ex, startedAt));
     }
 
-    private CompletableFuture<Void> onSuccess(ConsumerRecord<String, String> record, ExtractFrameResult result) {
+    private CompletableFuture<Void> onSuccess(ConsumerRecord<String, String> record, ExtractFrameResult result, Instant startedAt) {
         return kafkaProducer.publishSuccess(result)
             .thenRun(() -> {
+                Observability.incrementKafkaConsumed("frame", record.topic(), "success");
+                Observability.incrementJobs("frame", "success");
+                Observability.recordProcessingDuration(
+                    "frame",
+                    "extract_frame",
+                    "success",
+                    Duration.between(startedAt, Instant.now())
+                );
                 System.out.printf(
                     "Frame generated for key=%s, topic=%s, partition=%d, offset=%d, output=%s, elapsed=%dms%n",
                     record.key(),
@@ -129,11 +147,19 @@ public class ExtractFrameKafkaConsumer {
             });
     }
 
-    private CompletableFuture<Void> onError(ConsumerRecord<String, String> record, ExtractFrameCommand command, Throwable ex) {
+    private CompletableFuture<Void> onError(ConsumerRecord<String, String> record, ExtractFrameCommand command, Throwable ex, Instant startedAt) {
         final var cause = ex.getCause() != null ? ex.getCause() : ex;
 
         return kafkaProducer.publishError(command, cause)
             .thenRun(() -> {
+                Observability.incrementKafkaConsumed("frame", record.topic(), "error");
+                Observability.incrementJobs("frame", "error");
+                Observability.recordProcessingDuration(
+                    "frame",
+                    "extract_frame",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 System.err.printf(
                     "Error processing topic=%s partition=%d offset=%d videoId=%d error=%s%n",
                     record.topic(),

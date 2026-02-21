@@ -3,6 +3,7 @@ package es.mblcu.videomanager.infrastructure.kafka;
 import es.mblcu.videomanager.application.usecase.TranscodeVideoUseCase;
 import es.mblcu.videomanager.domain.transcode.TranscodeVideoCommand;
 import es.mblcu.videomanager.domain.transcode.TranscodeVideoResult;
+import es.mblcu.videomanager.infrastructure.observability.Observability;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -12,6 +13,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,10 +104,18 @@ public class TranscodeKafkaConsumer {
     }
 
     CompletableFuture<Void> processRecordAsync(ConsumerRecord<String, String> record) {
+        final var startedAt = Instant.now();
         final TranscodeVideoCommand command;
         try {
             command = messageMapper.toCommand(record.value());
         } catch (Exception ex) {
+            Observability.incrementKafkaConsumed("transcode", record.topic(), "parse_error");
+            Observability.recordProcessingDuration(
+                "transcode",
+                "transcode_video",
+                "error",
+                Duration.between(startedAt, Instant.now())
+            );
             final var fallback = new TranscodeVideoCommand(
                 parseKey(record.key()),
                 "unknown",
@@ -113,24 +123,44 @@ public class TranscodeKafkaConsumer {
                 1,
                 1
             );
-            return onError(record, fallback, ex);
+            return onError(record, fallback, ex, startedAt);
         }
 
         return useCase.execute(command)
-            .thenCompose(result -> onSuccess(record, result))
-            .exceptionallyCompose(ex -> onError(record, command, ex));
+            .thenCompose(result -> onSuccess(record, result, startedAt))
+            .exceptionallyCompose(ex -> onError(record, command, ex, startedAt));
     }
 
-    private CompletableFuture<Void> onSuccess(ConsumerRecord<String, String> record, TranscodeVideoResult result) {
+    private CompletableFuture<Void> onSuccess(ConsumerRecord<String, String> record, TranscodeVideoResult result, Instant startedAt) {
         return kafkaProducer.publishSuccess(result)
-            .thenRun(() -> offsetAcks.add(new OffsetAck(record.topic(), record.partition(), record.offset() + 1)));
+            .thenRun(() -> {
+                Observability.incrementKafkaConsumed("transcode", record.topic(), "success");
+                Observability.incrementJobs("transcode", "success");
+                Observability.recordProcessingDuration(
+                    "transcode",
+                    "transcode_video",
+                    "success",
+                    Duration.between(startedAt, Instant.now())
+                );
+                offsetAcks.add(new OffsetAck(record.topic(), record.partition(), record.offset() + 1));
+            });
     }
 
-    private CompletableFuture<Void> onError(ConsumerRecord<String, String> record, TranscodeVideoCommand command, Throwable ex) {
+    private CompletableFuture<Void> onError(ConsumerRecord<String, String> record, TranscodeVideoCommand command, Throwable ex, Instant startedAt) {
         final var cause = ex.getCause() != null ? ex.getCause() : ex;
 
         return kafkaProducer.publishError(command, cause)
-            .thenRun(() -> offsetAcks.add(new OffsetAck(record.topic(), record.partition(), record.offset() + 1)));
+            .thenRun(() -> {
+                Observability.incrementKafkaConsumed("transcode", record.topic(), "error");
+                Observability.incrementJobs("transcode", "error");
+                Observability.recordProcessingDuration(
+                    "transcode",
+                    "transcode_video",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
+                offsetAcks.add(new OffsetAck(record.topic(), record.partition(), record.offset() + 1));
+            });
     }
 
     private void commitCompletedOffsets(KafkaConsumer<String, String> consumer) {

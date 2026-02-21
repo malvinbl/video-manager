@@ -2,6 +2,7 @@ package es.mblcu.videomanager.infrastructure.ffmpeg;
 
 import es.mblcu.videomanager.domain.frame.FrameExtractionPort;
 import es.mblcu.videomanager.domain.frame.exception.FrameExtractionException;
+import es.mblcu.videomanager.infrastructure.observability.Observability;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -38,10 +39,10 @@ public class FfmpegFrameExtractionAdapter implements FrameExtractionPort {
     @Override
     public CompletableFuture<Duration> extractFrame(Path localVideoFile, Path localFrameFile, double second) {
         return CompletableFuture.supplyAsync(() -> {
+            final var startedAt = Instant.now();
             ensureOutputDirectoryExists(localFrameFile);
 
             List<String> ffmpegCommand = buildCommand(localVideoFile, localFrameFile, second);
-            final var start = Instant.now();
 
             Process process;
             try {
@@ -49,12 +50,20 @@ public class FfmpegFrameExtractionAdapter implements FrameExtractionPort {
                     .redirectErrorStream(true)
                     .start();
             } catch (IOException ex) {
+                Observability.recordExternalCallDuration(
+                    "ffmpeg",
+                    "extract_frame",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 throw new FrameExtractionException("Cannot execute ffmpeg command", ex);
             }
 
-            waitForFinish(localFrameFile, process);
+            waitForFinish(localFrameFile, process, startedAt);
 
-            return Duration.between(start, Instant.now());
+            final var elapsed = Duration.between(startedAt, Instant.now());
+            Observability.recordExternalCallDuration("ffmpeg", "extract_frame", "success", elapsed);
+            return elapsed;
         }, executorService);
     }
 
@@ -69,7 +78,7 @@ public class FfmpegFrameExtractionAdapter implements FrameExtractionPort {
         }
     }
 
-    void waitForFinish(Path outputFile, Process process) {
+    void waitForFinish(Path outputFile, Process process, Instant startedAt) {
         String output;
         try {
             boolean finished = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -77,21 +86,51 @@ public class FfmpegFrameExtractionAdapter implements FrameExtractionPort {
 
             if (!finished) {
                 process.destroyForcibly();
+                Observability.recordExternalCallDuration(
+                    "ffmpeg",
+                    "extract_frame",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 throw new FrameExtractionException("ffmpeg timeout after " + timeout.toSeconds() + " seconds");
             }
 
             int exitCode = process.exitValue();
             if (exitCode != 0) {
+                Observability.recordExternalCallDuration(
+                    "ffmpeg",
+                    "extract_frame",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 throw new FrameExtractionException("ffmpeg failed with exit code " + exitCode + ". Output: " + output);
             }
 
             if (!Files.exists(outputFile)) {
+                Observability.recordExternalCallDuration(
+                    "ffmpeg",
+                    "extract_frame",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 throw new FrameExtractionException("ffmpeg finished but output file was not generated: " + outputFile);
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+            Observability.recordExternalCallDuration(
+                "ffmpeg",
+                "extract_frame",
+                "error",
+                Duration.between(startedAt, Instant.now())
+            );
             throw new FrameExtractionException("Frame extraction interrupted", ex);
         } catch (IOException ex) {
+            Observability.recordExternalCallDuration(
+                "ffmpeg",
+                "extract_frame",
+                "error",
+                Duration.between(startedAt, Instant.now())
+            );
             throw new FrameExtractionException("Cannot read ffmpeg output", ex);
         }
     }

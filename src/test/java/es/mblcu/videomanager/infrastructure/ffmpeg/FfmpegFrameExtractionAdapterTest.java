@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -59,7 +60,7 @@ class FfmpegFrameExtractionAdapterTest {
         final var outputFile = tempDir.resolve("frame.png");
         final var process = new FakeProcess(false, 0, "running");
 
-        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process))
+        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process, Instant.now()))
             .isInstanceOf(FrameExtractionException.class)
             .hasMessageContaining("timeout");
         assertThat(process.destroyForciblyCalled).isTrue();
@@ -71,7 +72,7 @@ class FfmpegFrameExtractionAdapterTest {
         final var outputFile = tempDir.resolve("frame.png");
         final var process = new FakeProcess(true, 2, "ffmpeg error line");
 
-        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process))
+        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process, Instant.now()))
             .isInstanceOf(FrameExtractionException.class)
             .hasMessageContaining("exit code 2")
             .hasMessageContaining("ffmpeg error line");
@@ -83,7 +84,7 @@ class FfmpegFrameExtractionAdapterTest {
         final var outputFile = tempDir.resolve("missing.png");
         final var process = new FakeProcess(true, 0, "ok");
 
-        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process))
+        assertThatThrownBy(() -> adapter.waitForFinish(outputFile, process, Instant.now()))
             .isInstanceOf(FrameExtractionException.class)
             .hasMessageContaining("output file was not generated");
     }
@@ -95,7 +96,7 @@ class FfmpegFrameExtractionAdapterTest {
         Files.createFile(outputFile);
         final var process = new FakeProcess(true, 0, "ok");
 
-        adapter.waitForFinish(outputFile, process);
+        adapter.waitForFinish(outputFile, process, Instant.now());
 
         assertThat(process.destroyForciblyCalled).isFalse();
     }

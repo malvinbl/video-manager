@@ -3,6 +3,7 @@ package es.mblcu.videomanager.infrastructure.ffmpeg;
 import es.mblcu.videomanager.domain.transcode.TranscodeTarget;
 import es.mblcu.videomanager.domain.transcode.VideoTranscodingPort;
 import es.mblcu.videomanager.domain.transcode.exception.VideoTranscodingException;
+import es.mblcu.videomanager.infrastructure.observability.Observability;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -39,13 +40,15 @@ public class FfmpegVideoTranscodingAdapter implements VideoTranscodingPort {
     @Override
     public CompletableFuture<Duration> transcode(Path localVideoFile, List<TranscodeTarget> targets) {
         return CompletableFuture.supplyAsync(() -> {
-            final var start = Instant.now();
+            final var startedAt = Instant.now();
             for (TranscodeTarget target : targets) {
                 ensureOutputDirectoryExists(target.localOutputFile());
                 final var command = buildCommand(localVideoFile, target);
-                runAndValidate(command, target.localOutputFile());
+                runAndValidate(command, target.localOutputFile(), startedAt);
             }
-            return Duration.between(start, Instant.now());
+            final var elapsed = Duration.between(startedAt, Instant.now());
+            Observability.recordExternalCallDuration("ffmpeg", "transcode_video", "success", elapsed);
+            return elapsed;
         }, executorService);
     }
 
@@ -64,13 +67,19 @@ public class FfmpegVideoTranscodingAdapter implements VideoTranscodingPort {
         );
     }
 
-    private void runAndValidate(List<String> command, Path outputFile) {
+    private void runAndValidate(List<String> command, Path outputFile, Instant startedAt) {
         Process process;
         try {
             process = new ProcessBuilder(command)
                 .redirectErrorStream(true)
                 .start();
         } catch (IOException ex) {
+            Observability.recordExternalCallDuration(
+                "ffmpeg",
+                "transcode_video",
+                "error",
+                Duration.between(startedAt, Instant.now())
+            );
             throw new VideoTranscodingException("Cannot execute ffmpeg command", ex);
         }
 
@@ -80,21 +89,51 @@ public class FfmpegVideoTranscodingAdapter implements VideoTranscodingPort {
 
             if (!finished) {
                 process.destroyForcibly();
+                Observability.recordExternalCallDuration(
+                    "ffmpeg",
+                    "transcode_video",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 throw new VideoTranscodingException("ffmpeg timeout after " + timeout.toSeconds() + " seconds");
             }
 
             int exitCode = process.exitValue();
             if (exitCode != 0) {
+                Observability.recordExternalCallDuration(
+                    "ffmpeg",
+                    "transcode_video",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 throw new VideoTranscodingException("ffmpeg failed with exit code " + exitCode + ". Output: " + output);
             }
 
             if (!Files.exists(outputFile)) {
+                Observability.recordExternalCallDuration(
+                    "ffmpeg",
+                    "transcode_video",
+                    "error",
+                    Duration.between(startedAt, Instant.now())
+                );
                 throw new VideoTranscodingException("ffmpeg finished but output file was not generated: " + outputFile);
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+            Observability.recordExternalCallDuration(
+                "ffmpeg",
+                "transcode_video",
+                "error",
+                Duration.between(startedAt, Instant.now())
+            );
             throw new VideoTranscodingException("Video transcoding interrupted", ex);
         } catch (IOException ex) {
+            Observability.recordExternalCallDuration(
+                "ffmpeg",
+                "transcode_video",
+                "error",
+                Duration.between(startedAt, Instant.now())
+            );
             throw new VideoTranscodingException("Cannot read ffmpeg output", ex);
         }
     }

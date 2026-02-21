@@ -119,3 +119,45 @@ Useful endpoints in local machine:
 - Redis: `localhost:6379`
 - MinIO S3 API: `http://localhost:9000`
 - MinIO Console: `http://localhost:9001` (user: `minio-root-user`, password: `minio-root-password`)
+- Observability metrics: `http://localhost:8081/metrics`
+
+## Observability
+
+The service exposes a dedicated HTTP server for metrics and health probes.
+
+Default config:
+
+- `observability.port=8081` (env: `OBSERVABILITY_PORT`)
+- `observability.bind-address=0.0.0.0` (env: `OBSERVABILITY_BIND_ADDRESS`)
+
+Available endpoints:
+
+- `GET /metrics` (Prometheus format)
+- `GET /health`
+- `GET /health/live`
+- `GET /health/ready`
+- `GET /health/startup`
+
+Quick local checks:
+
+```bash
+curl -s http://localhost:8081/health
+curl -s http://localhost:8081/metrics | grep videomanager_
+```
+
+Main metric families and tags:
+
+- `videomanager_health_status`
+  - tags: `probe` (`liveness`, `readiness`, `startup`)
+- `videomanager_kafka_messages_consumed_total`
+  - tags: `flow`, `topic`, `result`
+- `videomanager_kafka_messages_published_total`
+  - tags: `flow`, `topic`, `status`
+- `videomanager_jobs_total`
+  - tags: `flow`, `status`
+- `videomanager_startup_recovered_jobs_total`
+  - tags: `flow`
+- `videomanager_processing_duration`
+  - tags: `flow`, `operation`, `status`
+- `videomanager_external_call_duration`
+  - tags: `component`, `operation`, `status`
