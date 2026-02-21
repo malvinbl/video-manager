@@ -36,7 +36,7 @@ class TranscodeStartupRecoveryUseCaseTest {
     }
 
     @Test
-    void shouldReturnZeroWhenNoRunningJobs() {
+    void should_return_zero_when_no_running_jobs() {
         when(repository.findJobsByStatus(JobStatus.RUNNING)).thenReturn(CompletableFuture.completedFuture(List.of()));
 
         int recovered = useCase.recoverRunningJobs().join();
@@ -46,7 +46,7 @@ class TranscodeStartupRecoveryUseCaseTest {
     }
 
     @Test
-    void shouldMarkRunningJobsAsError() {
+    void should_mark_running_jobs_as_error() {
         final var running = new TranscodeJobState(
             "100|s3://bucket/transcoded/100|1280x720",
             100L,

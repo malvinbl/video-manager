@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TranscodeProfileCatalogFactoryTest {
 
     @AfterEach
-    void clearProperties() {
+    void clear_properties() {
         System.clearProperty("transcode.allowed-dimensions");
         System.clearProperty("transcode.profiles.1920x1080");
         System.clearProperty("transcode.profiles.1280x720");
@@ -19,7 +19,7 @@ class TranscodeProfileCatalogFactoryTest {
     }
 
     @Test
-    void shouldLoadConfiguredDefaults() {
+    void should_load_configured_defaults() {
         final var catalog = TranscodeProfileCatalogFactory.fromProperties();
 
         assertThat(catalog.supports(1280, 720)).isTrue();
@@ -29,7 +29,7 @@ class TranscodeProfileCatalogFactoryTest {
     }
 
     @Test
-    void shouldOverrideProfilesFromSystemProperties() {
+    void should_override_profiles_from_system_properties() {
         System.setProperty("transcode.allowed-dimensions", "1024x576");
         System.setProperty("transcode.profiles.1024x576", "640x360@900k,426x240@500k,256x144@250k");
 
@@ -43,7 +43,7 @@ class TranscodeProfileCatalogFactoryTest {
     }
 
     @Test
-    void shouldFailWhenProfileDefinitionIsInvalid() {
+    void should_fail_when_profile_definition_is_invalid() {
         System.setProperty("transcode.allowed-dimensions", "1024x576");
         System.setProperty("transcode.profiles.1024x576", "invalid-profile");
 

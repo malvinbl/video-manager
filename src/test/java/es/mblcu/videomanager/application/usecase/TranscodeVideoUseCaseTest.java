@@ -82,7 +82,7 @@ class TranscodeVideoUseCaseTest {
     }
 
     @Test
-    void shouldFailWhenDimensionsAreUnsupported() {
+    void should_fail_when_dimensions_are_unsupported() {
         final var command = new TranscodeVideoCommand(
             1L,
             "s3://bucket/videos/in.mp4",
@@ -99,7 +99,7 @@ class TranscodeVideoUseCaseTest {
     }
 
     @Test
-    void shouldDownloadTranscodeUploadAndCleanupLocalFiles() {
+    void should_download_transcode_upload_and_cleanup_local_files() {
         final var command = new TranscodeVideoCommand(
             10L,
             "s3://bucket/videos/video.mp4",
@@ -151,7 +151,7 @@ class TranscodeVideoUseCaseTest {
     }
 
     @Test
-    void shouldBeIdempotentWhenJobAlreadySucceeded() {
+    void should_be_idempotent_when_job_already_succeeded() {
         final var command = new TranscodeVideoCommand(
             11L,
             "s3://bucket/videos/video.mp4",

@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class FfmpegFrameExtractionAdapterTest {
 
     @Test
-    void shouldBuildExpectedCommand() {
+    void should_build_expected_command() {
         final var adapter = new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(30));
 
         final var built = adapter.buildCommand(Path.of("in.mp4"), Path.of("out/frame.png"), 1.25);
@@ -30,13 +30,13 @@ class FfmpegFrameExtractionAdapterTest {
     }
 
     @Test
-    void shouldFailWhenBinaryIsBlank() {
+    void should_fail_when_binary_is_blank() {
         assertThatThrownBy(() -> new FfmpegFrameExtractionAdapter("", Duration.ofSeconds(10)))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    void shouldFailWhenTimeoutIsInvalid() {
+    void should_fail_when_timeout_is_invalid() {
         assertThatThrownBy(() -> new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ZERO))
             .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(-1)))
@@ -44,7 +44,7 @@ class FfmpegFrameExtractionAdapterTest {
     }
 
     @Test
-    void shouldCreateOutputDirectory(@TempDir Path tempDir) {
+    void should_create_output_directory(@TempDir Path tempDir) {
         final var adapter = new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(30));
         final var outputFile = tempDir.resolve("nested/dir/frame.png");
 
@@ -54,7 +54,7 @@ class FfmpegFrameExtractionAdapterTest {
     }
 
     @Test
-    void shouldFailOnTimeoutAndDestroyProcess(@TempDir Path tempDir) {
+    void should_fail_on_timeout_and_destroy_process(@TempDir Path tempDir) {
         final var adapter = new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(1));
         final var outputFile = tempDir.resolve("frame.png");
         final var process = new FakeProcess(false, 0, "running");
@@ -66,7 +66,7 @@ class FfmpegFrameExtractionAdapterTest {
     }
 
     @Test
-    void shouldFailWhenExitCodeIsNotZero(@TempDir Path tempDir) {
+    void should_fail_when_exit_code_is_not_zero(@TempDir Path tempDir) {
         final var adapter = new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(30));
         final var outputFile = tempDir.resolve("frame.png");
         final var process = new FakeProcess(true, 2, "ffmpeg error line");
@@ -78,7 +78,7 @@ class FfmpegFrameExtractionAdapterTest {
     }
 
     @Test
-    void shouldFailWhenOutputFileWasNotGenerated(@TempDir Path tempDir) {
+    void should_fail_when_output_file_was_not_generated(@TempDir Path tempDir) {
         final var adapter = new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(30));
         final var outputFile = tempDir.resolve("missing.png");
         final var process = new FakeProcess(true, 0, "ok");
@@ -89,7 +89,7 @@ class FfmpegFrameExtractionAdapterTest {
     }
 
     @Test
-    void shouldSucceedWhenProcessFinishesAndOutputExists(@TempDir Path tempDir) throws Exception {
+    void should_succeed_when_process_finishes_and_output_exists(@TempDir Path tempDir) throws Exception {
         final var adapter = new FfmpegFrameExtractionAdapter("ffmpeg", Duration.ofSeconds(30));
         final var outputFile = tempDir.resolve("frame.png");
         Files.createFile(outputFile);

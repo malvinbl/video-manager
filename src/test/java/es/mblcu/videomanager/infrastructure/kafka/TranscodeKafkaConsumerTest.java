@@ -46,7 +46,7 @@ class TranscodeKafkaConsumerTest {
     }
 
     @Test
-    void shouldPublishSuccessWhenUseCaseCompletes() {
+    void should_publish_success_when_use_case_completes() {
         String payload = """
             {
               "videoId": 3001,
@@ -69,7 +69,7 @@ class TranscodeKafkaConsumerTest {
     }
 
     @Test
-    void shouldPublishErrorWhenUseCaseFails() {
+    void should_publish_error_when_use_case_fails() {
         String payload = """
             {
               "videoId": 3002,
@@ -96,7 +96,7 @@ class TranscodeKafkaConsumerTest {
     }
 
     @Test
-    void shouldPublishErrorWhenPayloadIsInvalidJson() {
+    void should_publish_error_when_payload_is_invalid_json() {
         ConsumerRecord<String, String> record = new ConsumerRecord<>("transcode-request-topic", 0, 30L, "3010", "not-json");
 
         when(kafkaProducer.publishError(any(TranscodeVideoCommand.class), any(Throwable.class)))

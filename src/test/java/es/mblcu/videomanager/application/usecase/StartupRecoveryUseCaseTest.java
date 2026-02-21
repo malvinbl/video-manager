@@ -35,7 +35,7 @@ class StartupRecoveryUseCaseTest {
     }
 
     @Test
-    void shouldReturnZeroWhenNoRunningJobs() {
+    void should_return_zero_when_no_running_jobs() {
         when(repository.findJobsByStatus(JobStatus.RUNNING)).thenReturn(CompletableFuture.completedFuture(List.of()));
 
         int recovered = useCase.recoverRunningJobs().join();
@@ -45,7 +45,7 @@ class StartupRecoveryUseCaseTest {
     }
 
     @Test
-    void shouldMarkRunningJobsAsErrorOnStartup() {
+    void should_mark_running_jobs_as_error_on_startup() {
         final var running = new JobState(
             "100|s3://bucket/frames/frame.png|2.5",
             100L,

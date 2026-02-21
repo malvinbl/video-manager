@@ -36,7 +36,7 @@ class FileRepositoryS3AdapterTest {
     }
 
     @Test
-    void shouldDownloadUsingBucketAndObjectFromS3Uri() throws Exception {
+    void should_download_using_bucket_and_object_from_s3_uri() throws Exception {
         when(minioAsyncClient.downloadObject(any(DownloadObjectArgs.class)))
             .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -54,7 +54,7 @@ class FileRepositoryS3AdapterTest {
     }
 
     @Test
-    void shouldUploadUsingDefaultBucketWhenPathIsRelative() throws Exception {
+    void should_upload_using_default_bucket_when_path_is_relative() throws Exception {
         final var localSource = Files.createTempFile("frame-", ".png");
 
         when(minioAsyncClient.uploadObject(any(UploadObjectArgs.class)))
@@ -74,14 +74,14 @@ class FileRepositoryS3AdapterTest {
     }
 
     @Test
-    void shouldWrapInvalidDownloadPath() {
+    void should_wrap_invalid_download_path() {
         assertThatThrownBy(() -> adapter.download("s3://broken", Path.of("tmp/input.mp4")))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid S3 URI");
     }
 
     @Test
-    void shouldPropagateAsyncUploadFailure() throws Exception {
+    void should_propagate_async_upload_failure() throws Exception {
         final var rootCause = new RuntimeException("upload boom");
         final var localSource = Files.createTempFile("frame-", ".png");
 
@@ -94,7 +94,7 @@ class FileRepositoryS3AdapterTest {
     }
 
     @Test
-    void shouldWrapSynchronousUploadFailure() throws Exception {
+    void should_wrap_synchronous_upload_failure() throws Exception {
         final var rootCause = new RuntimeException("sync boom");
         final var localSource = Files.createTempFile("frame-", ".png");
 

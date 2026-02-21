@@ -14,7 +14,7 @@ class LocalWorkspaceServiceTest {
     Path tempDir;
 
     @Test
-    void shouldResolveVideoFrameAndTranscodedPathsAndCreateDirectories() {
+    void should_resolve_video_frame_and_transcoded_paths_and_create_directories() {
         final var service = new LocalWorkspaceService(tempDir);
 
         final var localVideo = service.resolveLocalVideoPath("s3://bucket/videos/input.mp4");
@@ -35,7 +35,7 @@ class LocalWorkspaceServiceTest {
     }
 
     @Test
-    void shouldUseFallbackNameWhenPathHasNoFilename() {
+    void should_use_fallback_name_when_path_has_no_filename() {
         final var service = new LocalWorkspaceService(tempDir);
 
         final var local = service.resolveLocalVideoPath("s3://bucket/videos/");
@@ -44,7 +44,7 @@ class LocalWorkspaceServiceTest {
     }
 
     @Test
-    void shouldEnsureParentDirectoryForNestedFile() {
+    void should_ensure_parent_directory_for_nested_file() {
         final var service = new LocalWorkspaceService(tempDir);
         final var nested = tempDir.resolve("a/b/c/file.bin");
 
@@ -54,7 +54,7 @@ class LocalWorkspaceServiceTest {
     }
 
     @Test
-    void shouldCheckExistenceAndDeleteQuietly() throws Exception {
+    void should_check_existence_and_delete_quietly() throws Exception {
         final var service = new LocalWorkspaceService(tempDir);
         final var file = tempDir.resolve("to-delete.txt");
         Files.writeString(file, "content");

@@ -42,7 +42,7 @@ class JobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldReturnEmptyWhenJobDoesNotExist() {
+    void should_return_empty_when_job_does_not_exist() {
         RedisFuture<Map<String, String>> future = redisFuture(Map.of());
 
         when(commands.hgetall("vm:job:job-1")).thenReturn(future);
@@ -54,7 +54,7 @@ class JobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldMapJobStateFromRedisHash() {
+    void should_map_job_state_from_redis_hash() {
         RedisFuture<Map<String, String>> future = redisFuture(Map.of(
             "videoId", "101",
             "videoS3Path", "s3://bucket/videos/video.mp4",
@@ -77,7 +77,7 @@ class JobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldStoreSuccessJobState() {
+    void should_store_success_job_state() {
         final var result = new ExtractFrameResult(77L, "s3://bucket/frames/frame.png", Duration.ofMillis(30));
         RedisFuture<Long> future = redisFuture(1L);
 
@@ -99,7 +99,7 @@ class JobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldDeleteVideoRefKeyWhenDecrementGoesToZero() {
+    void should_delete_video_ref_key_when_decrement_goes_to_zero() {
         String key = "vm:video:ref:s3://bucket/videos/video.mp4";
         RedisFuture<Long> decrFuture = redisFuture(0L);
         RedisFuture<Long> delFuture = redisFuture(1L);
@@ -115,7 +115,7 @@ class JobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldKeepVideoRefKeyWhenStillPositive() {
+    void should_keep_video_ref_key_when_still_positive() {
         String key = "vm:video:ref:s3://bucket/videos/video.mp4";
         RedisFuture<Long> future = redisFuture(2L);
 
@@ -129,7 +129,7 @@ class JobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldStoreRunningAndErrorStates() {
+    void should_store_running_and_error_states() {
         final var command = new ExtractFrameCommand(
             55L,
             "s3://bucket/videos/video.mp4",
@@ -156,7 +156,7 @@ class JobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldFindJobsByStatus() {
+    void should_find_jobs_by_status() {
         RedisFuture<List<String>> keysFuture = redisFuture(List.of("vm:job:job-1", "vm:job:job-2"));
         RedisFuture<Map<String, String>> job1Future = redisFuture(Map.of(
             "videoId", "1",

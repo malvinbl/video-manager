@@ -39,7 +39,7 @@ class ExtractFrameKafkaProducerTest {
     }
 
     @Test
-    void shouldPublishSuccessMessage() throws Exception {
+    void should_publish_success_message() throws Exception {
         final var result = new ExtractFrameResult(42L, "s3://bucket/frames/frame.png", Duration.ofMillis(12));
 
         doAnswer(invocation -> {
@@ -65,7 +65,7 @@ class ExtractFrameKafkaProducerTest {
     }
 
     @Test
-    void shouldPublishErrorMessageWithUnknownErrorWhenThrowableIsNull() throws Exception {
+    void should_publish_error_message_with_unknown_error_when_throwable_is_null() throws Exception {
         final var command = new ExtractFrameCommand(7L, "s3://bucket/videos/in.mp4", "s3://bucket/frames/f.png", 1.0);
 
         doAnswer(invocation -> {
@@ -86,7 +86,7 @@ class ExtractFrameKafkaProducerTest {
     }
 
     @Test
-    void shouldCompleteExceptionallyWhenKafkaSendFails() {
+    void should_complete_exceptionally_when_kafka_send_fails() {
         final var kafkaError = new RuntimeException("kafka down");
 
         doAnswer(invocation -> {

@@ -40,7 +40,7 @@ class TranscodeKafkaProducerTest {
     }
 
     @Test
-    void shouldPublishSuccessMessage() throws Exception {
+    void should_publish_success_message() throws Exception {
         final var result = new TranscodeVideoResult(
             42L,
             Map.of("854x480", "s3://bucket/transcoded/42/854x480.mp4"),
@@ -69,7 +69,7 @@ class TranscodeKafkaProducerTest {
     }
 
     @Test
-    void shouldPublishErrorMessage() throws Exception {
+    void should_publish_error_message() throws Exception {
         final var command = new TranscodeVideoCommand(9L, "s3://bucket/videos/v.mp4", "s3://bucket/transcoded/9", 1280, 720);
 
         doAnswer(invocation -> {
@@ -90,7 +90,7 @@ class TranscodeKafkaProducerTest {
     }
 
     @Test
-    void shouldCompleteExceptionallyWhenKafkaSendFails() {
+    void should_complete_exceptionally_when_kafka_send_fails() {
         final var kafkaError = new RuntimeException("kafka down");
 
         doAnswer(invocation -> {

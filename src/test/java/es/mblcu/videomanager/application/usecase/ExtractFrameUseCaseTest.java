@@ -61,7 +61,7 @@ class ExtractFrameUseCaseTest {
     }
 
     @Test
-    void shouldDownloadExtractUploadAndCleanupLocalFiles() {
+    void should_download_extract_upload_and_cleanup_local_files() {
         var downloads = new AtomicInteger();
         var uploads = new AtomicInteger();
         final var command = command(101L, "s3://bucket/frames/frame.png");
@@ -105,7 +105,7 @@ class ExtractFrameUseCaseTest {
     }
 
     @Test
-    void shouldBeIdempotentWhenSameJobArrivesTwice() {
+    void should_be_idempotent_when_same_job_arrives_twice() {
         final var command = command(777L, "s3://bucket/frames/frame.png");
         String jobId = command.videoId() + "|" + command.frameS3Path() + "|" + command.second();
         var downloads = new AtomicInteger();
@@ -151,7 +151,7 @@ class ExtractFrameUseCaseTest {
     }
 
     @Test
-    void shouldDownloadAgainWhenPreviousTaskFinishedAndVideoWasCleaned() {
+    void should_download_again_when_previous_task_finished_and_video_was_cleaned() {
         var downloads = new AtomicInteger();
         final var command1 = command(102L, "s3://bucket/frames/frame.png");
         final var command2 = command(103L, "s3://bucket/frames/frame2.png");
@@ -182,7 +182,7 @@ class ExtractFrameUseCaseTest {
     }
 
     @Test
-    void shouldDownloadOnceForConcurrentTasksUsingSameVideo() throws Exception {
+    void should_download_once_for_concurrent_tasks_using_same_video() throws Exception {
         var downloads = new AtomicInteger();
         final var started = new CountDownLatch(2);
         final var release = new CountDownLatch(1);

@@ -10,7 +10,7 @@ class ExtractFrameMessageMapperTest {
     private final ExtractFrameMessageMapper mapper = new ExtractFrameMessageMapper();
 
     @Test
-    void shouldMapValidMessage() {
+    void should_map_valid_message() {
         String payload = """
             {
               "videoId": 1001,
@@ -29,7 +29,7 @@ class ExtractFrameMessageMapperTest {
     }
 
     @Test
-    void shouldMapLegacyFieldsForCompatibility() {
+    void should_map_legacy_fields_for_compatibility() {
         String payload = """
             {
               "videoId": 1002,
@@ -47,7 +47,7 @@ class ExtractFrameMessageMapperTest {
     }
 
     @Test
-    void shouldFailWithInvalidJson() {
+    void should_fail_with_invalid_json() {
         assertThatThrownBy(() -> mapper.toCommand("not-json"))
             .isInstanceOf(IllegalArgumentException.class);
     }

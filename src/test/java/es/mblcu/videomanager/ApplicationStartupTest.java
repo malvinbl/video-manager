@@ -30,7 +30,7 @@ class ApplicationStartupTest {
     private JobStateRepositoryRedisAdapter repository;
 
     @Test
-    void shouldStartApplicationFlowWithoutShutdownHookInSmokeMode() {
+    void should_start_application_flow_without_shutdown_hook_in_smoke_mode() {
         final var config = new ExtractFrameKafkaConsumerConfig(
             "localhost:9092",
             "videomanager-test",

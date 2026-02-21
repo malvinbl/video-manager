@@ -40,7 +40,7 @@ class TranscodeJobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldReturnEmptyWhenJobDoesNotExist() {
+    void should_return_empty_when_job_does_not_exist() {
         RedisFuture<Map<String, String>> future = redisFuture(Map.of());
 
         when(commands.hgetall("vm:transcode:job:job-1")).thenReturn(future);
@@ -51,7 +51,7 @@ class TranscodeJobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldMapJobStateFromRedisHash() {
+    void should_map_job_state_from_redis_hash() {
         RedisFuture<Map<String, String>> future = redisFuture(Map.of(
             "videoId", "101",
             "videoS3Path", "s3://bucket/videos/video.mp4",
@@ -75,7 +75,7 @@ class TranscodeJobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldStoreRunningAndSuccessStates() {
+    void should_store_running_and_success_states() {
         final var command = new TranscodeVideoCommand(77L, "s3://bucket/videos/video.mp4", "s3://bucket/transcoded/77", 1280, 720);
         final var result = new TranscodeVideoResult(
             77L,
@@ -101,7 +101,7 @@ class TranscodeJobStateRepositoryRedisAdapterTest {
     }
 
     @Test
-    void shouldFindJobsByStatus() {
+    void should_find_jobs_by_status() {
         RedisFuture<List<String>> keysFuture = redisFuture(List.of("vm:transcode:job:job-1", "vm:transcode:job:job-2"));
         RedisFuture<Map<String, String>> job1Future = redisFuture(Map.of(
             "videoId", "1",

@@ -50,7 +50,7 @@ class ExtractFrameKafkaConsumerTest {
     }
 
     @Test
-    void shouldPublishSuccessWhenUseCaseCompletes() {
+    void should_publish_success_when_use_case_completes() {
         String payload = """
             {
               "videoId": 1001,
@@ -72,7 +72,7 @@ class ExtractFrameKafkaConsumerTest {
     }
 
     @Test
-    void shouldPublishErrorWhenUseCaseFails() {
+    void should_publish_error_when_use_case_fails() {
         String payload = """
             {
               "videoId": 1002,
@@ -97,7 +97,7 @@ class ExtractFrameKafkaConsumerTest {
     }
 
     @Test
-    void shouldFailWhenPayloadIsInvalidJson() {
+    void should_fail_when_payload_is_invalid_json() {
         ConsumerRecord<String, String> record = new ConsumerRecord<>("request-topic", 0, 30L, "1003", "not-json");
 
         assertThatThrownBy(() -> consumer.processRecordAsync(record).join())
