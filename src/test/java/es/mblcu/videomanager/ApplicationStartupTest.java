@@ -3,6 +3,7 @@ package es.mblcu.videomanager;
 import es.mblcu.videomanager.infrastructure.kafka.ExtractFrameKafkaConsumer;
 import es.mblcu.videomanager.infrastructure.kafka.ExtractFrameKafkaConsumerConfig;
 import es.mblcu.videomanager.infrastructure.kafka.ExtractFrameKafkaProducer;
+import es.mblcu.videomanager.infrastructure.kafka.TranscodeKafkaConfig;
 import es.mblcu.videomanager.infrastructure.redis.JobStateRepositoryRedisAdapter;
 import es.mblcu.videomanager.domain.jobs.vo.JobStatus;
 import org.junit.jupiter.api.Test;
@@ -41,10 +42,18 @@ class ApplicationStartupTest {
             60,
             ".videomanager-work"
         );
+        final var transcodeConfig = new TranscodeKafkaConfig(
+            "localhost:9092",
+            "videomanager-transcode-test",
+            "transcode-request-topic",
+            "transcode-response-topic",
+            "latest",
+            1000
+        );
 
         when(repository.findJobsByStatus(JobStatus.RUNNING)).thenReturn(CompletableFuture.completedFuture(List.of()));
 
-        Application.run(config, consumer, producer, repository, false);
+        Application.run(config, transcodeConfig, consumer, producer, repository, false);
 
         verify(repository).findJobsByStatus(JobStatus.RUNNING);
         verify(consumer).start();

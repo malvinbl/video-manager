@@ -68,11 +68,12 @@ public final class Application {
 
         Thread.startVirtualThread(transcodeConsumer::start);
 
-        run(config, consumer, producer, jobStateRepositoryRedisAdapter, true);
+        run(config, transcodeKafkaConfig, consumer, producer, jobStateRepositoryRedisAdapter, true);
     }
 
     static void run(
         ExtractFrameKafkaConsumerConfig config,
+        TranscodeKafkaConfig transcodeConfig,
         ExtractFrameKafkaConsumer consumer,
         ExtractFrameKafkaProducer producer,
         JobStateRepositoryRedisAdapter jobStateRepositoryRedisAdapter,
@@ -93,9 +94,16 @@ public final class Application {
         }
 
         log.info(
-            "=== Application started === requestTopic={}, responseTopic={}, bootstrapServers={}",
+            "=== Application started ===\n "
+                + "frameRequestTopic = {},\n "
+                + "frameResponseTopic = {},\n "
+                + "transcodeRequestTopic = {},\n "
+                + "transcodeResponseTopic = {},\n "
+                + "bootstrapServers = {}",
             config.requestTopic(),
             config.responseTopic(),
+            transcodeConfig.requestTopic(),
+            transcodeConfig.responseTopic(),
             config.bootstrapServers()
         );
 
