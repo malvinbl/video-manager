@@ -10,10 +10,12 @@ public class LocalWorkspaceService {
 
     private final Path videosDir;
     private final Path framesDir;
+    private final Path transcodedDir;
 
     public LocalWorkspaceService(Path baseDir) {
         this.videosDir = baseDir.resolve("videos");
         this.framesDir = baseDir.resolve("frames");
+        this.transcodedDir = baseDir.resolve("transcoded");
     }
 
     public Path resolveLocalVideoPath(String s3Path) {
@@ -26,6 +28,12 @@ public class LocalWorkspaceService {
         ensureDirectory(framesDir);
         String name = fileNamePart(s3Path);
         return framesDir.resolve(hash(s3Path) + "-" + name);
+    }
+
+    public Path resolveLocalTranscodedPath(String s3Path) {
+        ensureDirectory(transcodedDir);
+        String name = fileNamePart(s3Path);
+        return transcodedDir.resolve(hash(s3Path) + "-" + name);
     }
 
     public boolean exists(Path file) {
