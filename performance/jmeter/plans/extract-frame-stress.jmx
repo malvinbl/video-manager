@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Extract Frame Stress Plan" enabled="true">
+      <stringProp name="TestPlan.comments">Stress test for extract-frame Kafka flow</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="Variables" enabled="true">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="bootstrapServers" elementType="Argument">
+            <stringProp name="Argument.name">bootstrapServers</stringProp>
+            <stringProp name="Argument.value">${__P(bootstrapServers,localhost:9092)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="videoS3Path" elementType="Argument">
+            <stringProp name="Argument.name">videoS3Path</stringProp>
+            <stringProp name="Argument.value">${__P(videoS3Path,s3://bucket/videos/sample.mp4)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="extractRequestTopic" elementType="Argument">
+            <stringProp name="Argument.name">extractRequestTopic</stringProp>
+            <stringProp name="Argument.value">${__P(extractRequestTopic,fe_sample_frame_request__norm)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath">${__P(extraClasspath,)}</stringProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Extract Threads" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">${__P(threads,20)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(ramp,30)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,300)}</stringProp>
+        <stringProp name="ThreadGroup.delay">0</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <stringProp name="LoopController.loops">-1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Flow Variables" enabled="true">
+          <collectionProp name="Arguments.arguments">
+            <elementProp name="flow" elementType="Argument">
+              <stringProp name="Argument.name">flow</stringProp>
+              <stringProp name="Argument.value">extract</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+          </collectionProp>
+        </Arguments>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Kafka Publish Extract Request" enabled="true">
+          <stringProp name="cacheKey">kafka_producer_extract</stringProp>
+          <stringProp name="filename">${__P(scriptPath,performance/jmeter/scripts/kafka_producer.groovy)}</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script"></stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

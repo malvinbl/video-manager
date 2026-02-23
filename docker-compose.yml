@@ -57,11 +57,29 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+      sample-video-seed:
+        condition: service_completed_successfully
+    volumes:
+      - sample-seed-data:/seed:ro
     entrypoint: >
       /bin/sh -c "
       mc alias set local http://minio:9000 minio-root-user minio-root-password &&
-      mc mb --ignore-existing local/bucket
+      mc mb --ignore-existing local/bucket &&
+      mc cp /seed/sample.mp4 local/bucket/videos/sample.mp4
       "
+    restart: "no"
+
+  sample-video-seed:
+    image: alpine:3.20
+    container_name: video-manager-sample-video-seed
+    entrypoint: >
+      /bin/sh -c "
+      apk add --no-cache ffmpeg &&
+      rm -f /seed/sample.mp4 &&
+      ffmpeg -y -f lavfi -i testsrc=size=1280x720:rate=30 -t 3 -pix_fmt yuv420p -c:v libx264 -movflags +faststart /seed/sample.mp4
+      "
+    volumes:
+      - sample-seed-data:/seed
     restart: "no"
 
   app:
@@ -91,3 +109,6 @@ services:
     ports:
       - "8081:8081"
     restart: unless-stopped
+
+volumes:
+  sample-seed-data:
